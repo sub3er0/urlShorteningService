@@ -14,7 +14,7 @@ func InitConfig() (*Config, error) {
 	cfg := &Config{}
 
 	flag.StringVar(&cfg.ServerAddress, "a", "localhost:8080", "Адрес HTTP-сервера")
-	flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8000/", "Базовый адрес для сокращенных URL")
+	flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080/", "Базовый адрес для сокращенных URL")
 	flag.Parse()
 
 	if cfg.ServerAddress == "" {
