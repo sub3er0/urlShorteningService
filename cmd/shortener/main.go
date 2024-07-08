@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"io"
 	"log"
 	"math/rand"
@@ -24,15 +23,9 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 
 	for k, v := range us.urls {
 		if k == id {
-			resp, err := json.Marshal(v)
-
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-
+			w.Header().Set("Location", v)
 			w.WriteHeader(http.StatusTemporaryRedirect)
-			w.Write(resp)
+			return
 		}
 	}
 }
