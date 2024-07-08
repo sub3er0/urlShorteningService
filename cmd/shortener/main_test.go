@@ -39,13 +39,9 @@ func TestGetHandler(t *testing.T) {
 	rr := httptest.NewRecorder()
 	us.GetHandler(rr, req)
 
-	if status := rr.Code; status != http.StatusTemporaryRedirect {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusTemporaryRedirect)
-	}
+	assert.Equal(t, http.StatusTemporaryRedirect, w.Code)
 
-	if location := rr.Header().Get("Location"); location != "https://www.example.com" {
-		t.Errorf("handler returned wrong location header: got %v want %v",
-			location, "https://www.example.com")
-	}
+	// Проверяем заголовок ответа
+	location := w.Header().Get("Location")
+	assert.Equal(t, "https://www.example.com", location)
 }
