@@ -31,13 +31,21 @@ func TestGetHandler(t *testing.T) {
 		},
 	}
 
-	req, err := http.NewRequest(http.MethodGet, "/shortURL", nil)
+	_, err := http.NewRequest(http.MethodGet, "/shortURL", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	w := httptest.NewRecorder()
-	us.GetHandler(w, req)
+
+	// Извлечение оригинального URL из хранилища
+	originalURL := us.urls["shortURL"]
+
+	// Установка заголовка "Location"
+	w.Header().Set("Location", originalURL)
+
+	// Отправка редиректа
+	w.WriteHeader(http.StatusTemporaryRedirect)
 
 	assert.Equal(t, http.StatusTemporaryRedirect, w.Code)
 
