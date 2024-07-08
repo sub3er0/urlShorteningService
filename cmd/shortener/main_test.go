@@ -36,8 +36,8 @@ func TestGetHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	rr := httptest.NewRecorder()
-	us.GetHandler(rr, req)
+	w := httptest.NewRecorder()
+	us.GetHandler(w, req)
 
 	assert.Equal(t, http.StatusTemporaryRedirect, w.Code)
 
