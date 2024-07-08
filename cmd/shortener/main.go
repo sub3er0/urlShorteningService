@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/go-chi/chi/v5"
+	"github.com/sub3er0/urlShorteningService/cmd/config"
 	"io"
 	"math/rand"
 	"net/http"
@@ -9,7 +10,9 @@ import (
 )
 
 type URLShortener struct {
-	urls map[string]string
+	urls          map[string]string
+	ServerAddress string
+	BaseURL       string
 }
 
 func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
@@ -53,20 +56,20 @@ func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
 
 	for k, v := range us.urls {
 		if v == postURL {
-			buildResponse(w, r, k)
+			us.buildResponse(w, r, k)
 			return
 		}
 	}
 
 	shortKey := generateShortKey()
 	us.urls[shortKey] = postURL
-	buildResponse(w, r, shortKey)
+	us.buildResponse(w, r, shortKey)
 }
 
-func buildResponse(w http.ResponseWriter, r *http.Request, shortKey string) {
+func (us *URLShortener) buildResponse(w http.ResponseWriter, r *http.Request, shortKey string) {
 	w.Header().Set("content-type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte("http://" + r.Host + "/" + shortKey))
+	w.Write([]byte(us.BaseURL + shortKey))
 }
 
 func generateShortKey() string {
@@ -83,14 +86,22 @@ func generateShortKey() string {
 }
 
 func main() {
+	cfg, err := config.InitConfig()
+
+	if err != nil {
+		return
+	}
+
 	shortener := &URLShortener{
-		urls: make(map[string]string),
+		urls:          make(map[string]string),
+		ServerAddress: cfg.ServerAddress,
+		BaseURL:       cfg.BaseURL,
 	}
 
 	r := chi.NewRouter()
 	r.Post("/", shortener.PostHandler)
 	r.Get("/{id}", shortener.GetHandler)
-	err := http.ListenAndServe(":8080", r)
+	err = http.ListenAndServe(cfg.ServerAddress, r)
 
 	if err != nil {
 		return
