@@ -57,31 +57,24 @@ func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	postUrl := u.String()
+	postURL := u.String()
 
 	for k, v := range us.urls {
-		if v == postUrl {
+		if v == postURL {
 			buildResponse(w, r, k)
 			return
 		}
 	}
 
 	shortKey := generateShortKey()
-	us.urls[shortKey] = postUrl
+	us.urls[shortKey] = postURL
 	buildResponse(w, r, shortKey)
 }
 
 func buildResponse(w http.ResponseWriter, r *http.Request, shortKey string) {
-	resp, err := json.Marshal("http://" + r.Host + "/" + shortKey)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
 	w.Header().Set("content-type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
-	w.Write(resp)
+	w.Write([]byte("http://" + r.Host + "/" + shortKey))
 }
 
 func generateShortKey() string {
