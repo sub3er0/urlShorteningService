@@ -10,7 +10,9 @@ import (
 
 func TestURLShortener_PostHandler(t *testing.T) {
 	us := &URLShortener{
-		urls: map[string]string{},
+		urls:          map[string]string{},
+		ServerAddress: "localhost:8080",
+		BaseURL:       "http://localhost:8080/",
 	}
 
 	req, err := http.NewRequest(http.MethodPost, "http://localhost/", bytes.NewReader([]byte("https://www.example.com")))
@@ -29,6 +31,8 @@ func TestGetHandler_ValidRequest(t *testing.T) {
 		urls: map[string]string{
 			"shortURL": "https://www.example.com",
 		},
+		ServerAddress: "localhost:8080",
+		BaseURL:       "http://localhost:8080/",
 	}
 	_, err := http.NewRequest(http.MethodGet, "/shortURL", nil)
 
@@ -48,7 +52,9 @@ func TestGetHandler_ValidRequest(t *testing.T) {
 
 func TestPostHandler_InvalidMethod(t *testing.T) {
 	us := &URLShortener{
-		urls: map[string]string{},
+		urls:          map[string]string{},
+		ServerAddress: "localhost:8080",
+		BaseURL:       "http://localhost:8080/",
 	}
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
 
@@ -66,7 +72,9 @@ func TestPostHandler_InvalidMethod(t *testing.T) {
 
 func TestPostHandler_InvalidURL(t *testing.T) {
 	us := &URLShortener{
-		urls: map[string]string{},
+		urls:          map[string]string{},
+		ServerAddress: "localhost:8080",
+		BaseURL:       "http://localhost:8080/",
 	}
 	body := []byte("invalid-url")
 	req, err := http.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
