@@ -1,10 +1,12 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -15,26 +17,70 @@ type URLShortener struct {
 func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 	// этот обработчик принимает только запросы, отправленные методом GET
 	if r.Method != http.MethodGet {
-		http.Error(w, "Only GET requests are allowed!", http.StatusMethodNotAllowed)
+		http.Error(w, "Only GET requests are allowed!", http.StatusBadRequest)
 		return
 	}
-	// продолжаем обработку запроса
-	// ...
+
+	id := r.PathValue("id")
+
+	for k, v := range us.urls {
+		if k == id {
+			resp, err := json.Marshal(v)
+
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+
+			w.WriteHeader(http.StatusTemporaryRedirect)
+			w.Write(resp)
+		}
+	}
 }
 
 func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
-	// этот обработчик принимает только запросы, отправленные методом GET
 	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST requests are allowed!", http.StatusMethodNotAllowed)
+		http.Error(w, "Only POST requests are allowed!", http.StatusBadRequest)
 		return
 	}
 
+	body, err := io.ReadAll(r.Body)
+
+	if err != nil {
+		panic(err)
+	}
+
+	u, err := url.ParseRequestURI(string(body))
+
+	if err != nil {
+		panic(err)
+	}
+
+	postUrl := u.String()
+
+	for k, v := range us.urls {
+		if v == postUrl {
+			buildResponse(w, r, k)
+			return
+		}
+	}
+
 	shortKey := generateShortKey()
-	us.urls[shortKey] = r.RequestURI
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(201)
-	shortenedURL := fmt.Sprintf("http://localhost:8080/%s", shortKey)
-	fmt.Fprintf(w, shortenedURL)
+	us.urls[shortKey] = postUrl
+	buildResponse(w, r, shortKey)
+}
+
+func buildResponse(w http.ResponseWriter, r *http.Request, shortKey string) {
+	resp, err := json.Marshal(r.Host + "/" + shortKey)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("content-type", "text/plain")
+	w.WriteHeader(http.StatusCreated)
+	w.Write(resp)
 }
 
 func generateShortKey() string {
@@ -43,9 +89,11 @@ func generateShortKey() string {
 
 	rand.Seed(time.Now().UnixNano())
 	shortKey := make([]byte, keyLength)
+
 	for i := range shortKey {
 		shortKey[i] = charset[rand.Intn(len(charset))]
 	}
+
 	return string(shortKey)
 }
 
@@ -54,7 +102,7 @@ func main() {
 		urls: make(map[string]string),
 	}
 
-	http.HandleFunc("/{id}}", shortener.GetHandler)
+	http.HandleFunc("/{id}", shortener.GetHandler)
 	http.HandleFunc("/", shortener.PostHandler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
