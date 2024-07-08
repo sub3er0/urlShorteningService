@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/go-chi/chi/v5"
 	"io"
-	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -87,7 +87,12 @@ func main() {
 		urls: make(map[string]string),
 	}
 
-	http.HandleFunc("/{id}", shortener.GetHandler)
-	http.HandleFunc("/", shortener.PostHandler)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	r := chi.NewRouter()
+	r.Post("/", shortener.PostHandler)
+	r.Get("/{id}", shortener.GetHandler)
+	err := http.ListenAndServe(":8080", r)
+
+	if err != nil {
+		return
+	}
 }
