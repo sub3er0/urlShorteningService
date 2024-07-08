@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
-	"time"
 )
 
 type URLShortener struct {
@@ -73,7 +72,7 @@ func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func buildResponse(w http.ResponseWriter, r *http.Request, shortKey string) {
-	resp, err := json.Marshal(r.Host + "/" + shortKey)
+	resp, err := json.Marshal("http://" + r.Host + "/" + shortKey)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -89,7 +88,6 @@ func generateShortKey() string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	const keyLength = 6
 
-	rand.Seed(time.Now().UnixNano())
 	shortKey := make([]byte, keyLength)
 
 	for i := range shortKey {
