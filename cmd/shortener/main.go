@@ -13,7 +13,6 @@ type URLShortener struct {
 }
 
 func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
-	// этот обработчик принимает только запросы, отправленные методом GET
 	if r.Method != http.MethodGet {
 		http.Error(w, "Only GET requests are allowed!", http.StatusBadRequest)
 		return
