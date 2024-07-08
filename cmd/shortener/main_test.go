@@ -31,8 +31,6 @@ func TestGetHandler_ValidRequest(t *testing.T) {
 		urls: map[string]string{
 			"shortURL": "https://www.example.com",
 		},
-		ServerAddress: "localhost:8080",
-		BaseURL:       "http://localhost:8080/",
 	}
 	_, err := http.NewRequest(http.MethodGet, "/shortURL", nil)
 

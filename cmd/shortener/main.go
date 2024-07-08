@@ -69,6 +69,11 @@ func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
 func (us *URLShortener) buildResponse(w http.ResponseWriter, r *http.Request, shortKey string) {
 	w.Header().Set("content-type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
+
+	if len(us.BaseURL) > 0 && us.BaseURL[len(us.BaseURL)-1] != '/' {
+		us.BaseURL = us.BaseURL + "/"
+	}
+
 	w.Write([]byte(us.BaseURL + shortKey))
 }
 
