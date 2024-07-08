@@ -38,18 +38,11 @@ func TestGetHandler(t *testing.T) {
 
 	w := httptest.NewRecorder()
 
-	// Извлечение оригинального URL из хранилища
 	originalURL := us.urls["shortURL"]
-
-	// Установка заголовка "Location"
 	w.Header().Set("Location", originalURL)
-
-	// Отправка редиректа
 	w.WriteHeader(http.StatusTemporaryRedirect)
-
 	assert.Equal(t, http.StatusTemporaryRedirect, w.Code)
 
-	// Проверяем заголовок ответа
 	location := w.Header().Get("Location")
 	assert.Equal(t, "https://www.example.com", location)
 }
