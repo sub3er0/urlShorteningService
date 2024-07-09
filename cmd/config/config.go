@@ -14,8 +14,6 @@ type Config struct {
 func InitConfig() (*Config, error) {
 	cfg := &Config{}
 
-	flag.Parse()
-
 	if ServerAddress := os.Getenv("SERVER_ADDRESS"); ServerAddress != "" {
 		cfg.ServerAddress = ServerAddress
 	} else {
@@ -27,6 +25,8 @@ func InitConfig() (*Config, error) {
 	} else {
 		flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080/", "Базовый адрес для сокращенных URL")
 	}
+
+	flag.Parse()
 
 	if cfg.ServerAddress == "" {
 		return nil, fmt.Errorf("ServerAddress is required")
