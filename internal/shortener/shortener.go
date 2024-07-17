@@ -1,16 +1,15 @@
-package main
+package shortener
 
 import (
-	"github.com/go-chi/chi/v5"
-	"github.com/sub3er0/urlShorteningService/cmd/config"
 	"io"
+	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
 )
 
 type URLShortener struct {
-	urls          map[string]string
+	Urls          map[string]string
 	ServerAddress string
 	BaseURL       string
 }
@@ -23,7 +22,7 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("id")
 
-	for k, v := range us.urls {
+	for k, v := range us.Urls {
 		if k == id {
 			w.Header().Set("Location", v)
 			w.WriteHeader(http.StatusTemporaryRedirect)
@@ -53,28 +52,29 @@ func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	postURL := u.String()
+	shortKey := us.getShortKey(postURL)
+	us.buildResponse(w, r, shortKey)
 
-	for k, v := range us.urls {
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+
+		if err != nil {
+			log.Fatalf("Error while initializing config: %v", err)
+		}
+	}(r.Body)
+}
+
+func (us *URLShortener) getShortKey(postURL string) string {
+	for k, v := range us.Urls {
 		if v == postURL {
-			us.buildResponse(w, r, k)
-			return
+			return k
 		}
 	}
 
 	shortKey := generateShortKey()
-	us.urls[shortKey] = postURL
-	us.buildResponse(w, r, shortKey)
-}
+	us.Urls[shortKey] = postURL
 
-func (us *URLShortener) buildResponse(w http.ResponseWriter, r *http.Request, shortKey string) {
-	w.Header().Set("content-type", "text/plain")
-	w.WriteHeader(http.StatusCreated)
-
-	if len(us.BaseURL) > 0 && us.BaseURL[len(us.BaseURL)-1] != '/' {
-		us.BaseURL = us.BaseURL + "/"
-	}
-
-	w.Write([]byte(us.BaseURL + shortKey))
+	return shortKey
 }
 
 func generateShortKey() string {
@@ -90,25 +90,13 @@ func generateShortKey() string {
 	return string(shortKey)
 }
 
-func main() {
-	cfg, err := config.InitConfig()
+func (us *URLShortener) buildResponse(w http.ResponseWriter, r *http.Request, shortKey string) {
+	w.Header().Set("content-type", "text/plain")
+	w.WriteHeader(http.StatusCreated)
 
-	if err != nil {
-		return
+	if len(us.BaseURL) > 0 && us.BaseURL[len(us.BaseURL)-1] != '/' {
+		us.BaseURL = us.BaseURL + "/"
 	}
 
-	shortener := &URLShortener{
-		urls:          make(map[string]string),
-		ServerAddress: cfg.ServerAddress,
-		BaseURL:       cfg.BaseURL,
-	}
-
-	r := chi.NewRouter()
-	r.Post("/", shortener.PostHandler)
-	r.Get("/{id}", shortener.GetHandler)
-	err = http.ListenAndServe(cfg.ServerAddress, r)
-
-	if err != nil {
-		return
-	}
+	w.Write([]byte(us.BaseURL + shortKey))
 }
