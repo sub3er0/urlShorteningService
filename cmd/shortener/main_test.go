@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/stretchr/testify/assert"
 	"github.com/sub3er0/urlShorteningService/internal/shortener"
+	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,7 +12,7 @@ import (
 
 func TestURLShortener_PostHandler(t *testing.T) {
 	us := &shortener.URLShortener{
-		Urls:          map[string]string{},
+		Storage:       &storage.InMemoryStorage{Urls: make(map[string]string)},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
 	}
@@ -29,8 +30,8 @@ func TestURLShortener_PostHandler(t *testing.T) {
 
 func TestGetHandler_ValidRequest(t *testing.T) {
 	us := &shortener.URLShortener{
-		Urls: map[string]string{
-			"shortURL": "https://www.example.com",
+		Storage: &storage.InMemoryStorage{
+			Urls: map[string]string{"shortURL": "https://www.example.com"},
 		},
 	}
 	_, err := http.NewRequest(http.MethodGet, "/shortURL", nil)
@@ -40,9 +41,13 @@ func TestGetHandler_ValidRequest(t *testing.T) {
 	}
 
 	w := httptest.NewRecorder()
-	originalURL := us.Urls["shortURL"]
-	w.Header().Set("Location", originalURL)
-	w.WriteHeader(http.StatusTemporaryRedirect)
+	originalURL, ok := us.Storage.GetURL("shortURL")
+
+	if ok {
+		w.Header().Set("Location", originalURL)
+		w.WriteHeader(http.StatusTemporaryRedirect)
+	}
+
 	assert.Equal(t, http.StatusTemporaryRedirect, w.Code, "Invalid status code")
 
 	location := w.Header().Get("Location")
@@ -51,7 +56,9 @@ func TestGetHandler_ValidRequest(t *testing.T) {
 
 func TestPostHandler_InvalidMethod(t *testing.T) {
 	us := &shortener.URLShortener{
-		Urls:          map[string]string{},
+		Storage: &storage.InMemoryStorage{
+			Urls: map[string]string{"shortURL": "https://www.example.com"},
+		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
 	}
@@ -71,7 +78,9 @@ func TestPostHandler_InvalidMethod(t *testing.T) {
 
 func TestPostHandler_InvalidURL(t *testing.T) {
 	us := &shortener.URLShortener{
-		Urls:          map[string]string{},
+		Storage: &storage.InMemoryStorage{
+			Urls: map[string]string{},
+		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
 	}
@@ -89,7 +98,9 @@ func TestPostHandler_InvalidURL(t *testing.T) {
 
 func TestURLShortener_PostHandlerExistedUrl(t *testing.T) {
 	us := &shortener.URLShortener{
-		Urls:          map[string]string{"shortURL": "https://www.example.com"},
+		Storage: &storage.InMemoryStorage{
+			Urls: map[string]string{"shortURL": "https://www.example.com"},
+		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
 	}
