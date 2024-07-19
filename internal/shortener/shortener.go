@@ -1,6 +1,7 @@
 package shortener
 
 import (
+	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"io"
 	"log"
 	"math/rand"
@@ -8,10 +9,25 @@ import (
 	"net/url"
 )
 
+// URLShortener Структура URLShortener, использующая интерфейс хранения
 type URLShortener struct {
-	Urls          map[string]string
+	Storage       storage.URLStorage
 	ServerAddress string
 	BaseURL       string
+}
+
+// GetURL Реализация функции получения URL
+func (us *URLShortener) GetURL(shortURL string) (string, bool) {
+	return us.Storage.GetURL(shortURL)
+}
+
+// SetURL Реализация функции сохранения URL
+func (us *URLShortener) SetURL(shortURL, longURL string) error {
+	return us.Storage.Set(shortURL, longURL)
+}
+
+func (us *URLShortener) getShortURL(Url string) (string, bool) {
+	return us.Storage.GetShortURL(Url)
 }
 
 func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
@@ -22,12 +38,12 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 
 	id := r.PathValue("id")
 
-	for k, v := range us.Urls {
-		if k == id {
-			w.Header().Set("Location", v)
-			w.WriteHeader(http.StatusTemporaryRedirect)
-			return
-		}
+	storedURL, ok := us.Storage.GetURL(id)
+
+	if ok {
+		w.Header().Set("Location", storedURL)
+		w.WriteHeader(http.StatusTemporaryRedirect)
+		return
 	}
 }
 
@@ -65,14 +81,18 @@ func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (us *URLShortener) getShortKey(postURL string) string {
-	for k, v := range us.Urls {
-		if v == postURL {
-			return k
-		}
+	shortKey, ok := us.getShortURL(postURL)
+
+	if ok {
+		return shortKey
 	}
 
-	shortKey := generateShortKey()
-	us.Urls[shortKey] = postURL
+	shortKey = generateShortKey()
+	err := us.SetURL(shortKey, postURL)
+
+	if err != nil {
+		log.Fatalf("Error while working with storage: %v", err)
+	}
 
 	return shortKey
 }

@@ -4,6 +4,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/sub3er0/urlShorteningService/internal/config"
 	"github.com/sub3er0/urlShorteningService/internal/shortener"
+	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"log"
 	"net/http"
 )
@@ -16,7 +17,7 @@ func main() {
 	}
 
 	shortenerInstance := &shortener.URLShortener{
-		Urls:          make(map[string]string),
+		Storage:       &storage.InMemoryStorage{Urls: make(map[string]string)},
 		ServerAddress: cfg.ServerAddress,
 		BaseURL:       cfg.BaseURL,
 	}
