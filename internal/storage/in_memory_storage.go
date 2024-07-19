@@ -10,9 +10,9 @@ func (ims *InMemoryStorage) GetURL(shortURL string) (string, bool) {
 	return longURL, ok
 }
 
-func (ims *InMemoryStorage) GetShortURL(Url string) (string, bool) {
+func (ims *InMemoryStorage) GetShortURL(URL string) (string, bool) {
 	for k, v := range ims.Urls {
-		if v == Url {
+		if v == URL {
 			return k, true
 		}
 	}

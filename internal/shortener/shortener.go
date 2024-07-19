@@ -26,8 +26,8 @@ func (us *URLShortener) SetURL(shortURL, longURL string) error {
 	return us.Storage.Set(shortURL, longURL)
 }
 
-func (us *URLShortener) getShortURL(Url string) (string, bool) {
-	return us.Storage.GetShortURL(Url)
+func (us *URLShortener) getShortURL(URL string) (string, bool) {
+	return us.Storage.GetShortURL(URL)
 }
 
 func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
