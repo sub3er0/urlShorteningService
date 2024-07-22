@@ -18,12 +18,12 @@ type URLShortener struct {
 	BaseURL       string
 }
 
-type JsonResponseBody struct {
+type JSONResponseBody struct {
 	Result string `json:"result"`
 }
 
 type RequestBody struct {
-	Url string `json:"url"`
+	URL string `json:"url"`
 }
 
 // GetURL Реализация функции получения URL
@@ -57,7 +57,7 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (us *URLShortener) JsonPostHandler(w http.ResponseWriter, r *http.Request) {
+func (us *URLShortener) JSONPostHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST requests are allowed!", http.StatusBadRequest)
 		return
@@ -78,18 +78,18 @@ func (us *URLShortener) JsonPostHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	bodyUrl, err := url.ParseRequestURI(string(requestBody.Url))
+	bodyURL, err := url.ParseRequestURI(string(requestBody.URL))
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	shortKey := us.getShortKey(bodyUrl.String())
-	var responseBody JsonResponseBody
+	shortKey := us.getShortKey(bodyURL.String())
+	var responseBody JSONResponseBody
 	responseBody.Result = shortKey
 
-	us.buildJsonResponse(w, r, responseBody)
+	us.buildJSONResponse(w, r, responseBody)
 }
 
 func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
@@ -166,7 +166,7 @@ func (us *URLShortener) buildResponse(w http.ResponseWriter, r *http.Request, sh
 	w.Write([]byte(us.BaseURL + shortKey))
 }
 
-func (us *URLShortener) buildJsonResponse(w http.ResponseWriter, r *http.Request, response JsonResponseBody) {
+func (us *URLShortener) buildJSONResponse(w http.ResponseWriter, r *http.Request, response JSONResponseBody) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 

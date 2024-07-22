@@ -36,7 +36,7 @@ func main() {
 	r.Use(logger.RequestLogger)
 	r.Post("/", shortenerInstance.PostHandler)
 	r.Get("/{id}", shortenerInstance.GetHandler)
-	r.Post("/api/shorten", shortenerInstance.JsonPostHandler)
+	r.Post("/api/shorten", shortenerInstance.JSONPostHandler)
 	err = http.ListenAndServe(cfg.ServerAddress, r)
 
 	if err != nil {

@@ -3,6 +3,7 @@ package shortener
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"net/http"
@@ -18,13 +19,19 @@ func TestURLShortener_JsonPostHandler(t *testing.T) {
 	}
 
 	var requestBody RequestBody
-	requestBody.Url = "https://www.example.com"
+	requestBody.URL = "https://www.example.com"
 	jsonBody, err := json.Marshal(requestBody)
+
+	if err != nil {
+		fmt.Println("Deserialization fail:", err)
+		return
+	}
+
 	req, err := http.NewRequest(http.MethodPost, "http://localhost:8080/api/shorten", bytes.NewReader(jsonBody))
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	us.JsonPostHandler(w, req)
+	us.JSONPostHandler(w, req)
 	assert.Equal(t, http.StatusCreated, w.Code, "Invalid status code")
 
 	body := w.Body.String()
@@ -46,7 +53,7 @@ func TestJsonPostHandler_InvalidMethod(t *testing.T) {
 	}
 
 	w := httptest.NewRecorder()
-	us.JsonPostHandler(w, req)
+	us.JSONPostHandler(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code, "Invalid status code")
 
 	body := w.Body.String()
@@ -62,8 +69,14 @@ func TestJsonPostHandler_InvalidURL(t *testing.T) {
 		BaseURL:       "http://localhost:8080/",
 	}
 	var requestBody RequestBody
-	requestBody.Url = "invalid-url"
+	requestBody.URL = "invalid-url"
 	jsonBody, err := json.Marshal(requestBody)
+
+	if err != nil {
+		fmt.Println("Deserialization fail:", err)
+		return
+	}
+
 	req, err := http.NewRequest(http.MethodPost, "/api/shorten", bytes.NewReader(jsonBody))
 
 	if err != nil {
@@ -71,7 +84,7 @@ func TestJsonPostHandler_InvalidURL(t *testing.T) {
 	}
 
 	w := httptest.NewRecorder()
-	us.JsonPostHandler(w, req)
+	us.JSONPostHandler(w, req)
 	assert.Equal(t, http.StatusBadRequest, w.Code, "Invalid URL")
 }
 
@@ -85,13 +98,19 @@ func TestURLShortener_JsonPostHandlerExistedUrl(t *testing.T) {
 	}
 
 	var requestBody RequestBody
-	requestBody.Url = "https://www.example.com"
+	requestBody.URL = "https://www.example.com"
 	jsonBody, err := json.Marshal(requestBody)
+
+	if err != nil {
+		fmt.Println("Deserialization fail:", err)
+		return
+	}
+
 	req, err := http.NewRequest(http.MethodPost, "http://localhost/api/shorten", bytes.NewReader(jsonBody))
 	assert.NoError(t, err)
 
 	w := httptest.NewRecorder()
-	us.JsonPostHandler(w, req)
+	us.JSONPostHandler(w, req)
 	assert.Equal(t, http.StatusCreated, w.Code, "Incorrect status code")
 
 	body := w.Body.String()
