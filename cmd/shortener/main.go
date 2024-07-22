@@ -32,10 +32,11 @@ func main() {
 	defer zapLogger.Sync()
 	logger.Sugar = *zapLogger.Sugar()
 	r := chi.NewRouter()
-	r.Use(logger.ResponseLogger) // Log response details
-	r.Use(logger.RequestLogger)  // Log request details
+	r.Use(logger.ResponseLogger)
+	r.Use(logger.RequestLogger)
 	r.Post("/", shortenerInstance.PostHandler)
 	r.Get("/{id}", shortenerInstance.GetHandler)
+	r.Post("/api/shorten", shortenerInstance.JsonPostHandler)
 	err = http.ListenAndServe(cfg.ServerAddress, r)
 
 	if err != nil {

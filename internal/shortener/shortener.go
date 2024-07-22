@@ -1,6 +1,8 @@
 package shortener
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"io"
 	"log"
@@ -14,6 +16,14 @@ type URLShortener struct {
 	Storage       storage.URLStorage
 	ServerAddress string
 	BaseURL       string
+}
+
+type JsonResponseBody struct {
+	Result string `json:"result"`
+}
+
+type RequestBody struct {
+	Url string `json:"url"`
 }
 
 // GetURL Реализация функции получения URL
@@ -45,6 +55,41 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusTemporaryRedirect)
 		return
 	}
+}
+
+func (us *URLShortener) JsonPostHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST requests are allowed!", http.StatusBadRequest)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var requestBody RequestBody
+	err = json.Unmarshal(body, &requestBody)
+
+	if err != nil {
+		fmt.Println("Deserialization fail:", err)
+		return
+	}
+
+	bodyUrl, err := url.ParseRequestURI(string(requestBody.Url))
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	shortKey := us.getShortKey(bodyUrl.String())
+	var responseBody JsonResponseBody
+	responseBody.Result = shortKey
+
+	us.buildJsonResponse(w, r, responseBody)
 }
 
 func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
@@ -119,4 +164,23 @@ func (us *URLShortener) buildResponse(w http.ResponseWriter, r *http.Request, sh
 	}
 
 	w.Write([]byte(us.BaseURL + shortKey))
+}
+
+func (us *URLShortener) buildJsonResponse(w http.ResponseWriter, r *http.Request, response JsonResponseBody) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	if len(us.BaseURL) > 0 && us.BaseURL[len(us.BaseURL)-1] != '/' {
+		us.BaseURL = us.BaseURL + "/"
+	}
+
+	response.Result = us.BaseURL + response.Result
+	jsonData, err := json.Marshal(response)
+
+	if err != nil {
+		fmt.Println("Deserialization fail:", err)
+		return
+	}
+
+	w.Write([]byte(jsonData))
 }
