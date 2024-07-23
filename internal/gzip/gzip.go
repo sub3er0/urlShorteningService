@@ -28,8 +28,7 @@ func (rw *gzipResponseWriter) WriteHeader(statusCode int) {
 
 func GzipMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") &&
-			contains(r.Header.Get("Content-Type"), AllowedContentTypes) {
+		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			w.Header().Set("Content-Encoding", "gzip")
 			gz := gzip.NewWriter(w)
 
