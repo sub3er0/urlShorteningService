@@ -10,7 +10,6 @@ import (
 	"go.uber.org/zap"
 	"log"
 	"net/http"
-	"strings"
 )
 
 var shortenerInstance *shortener.URLShortener
@@ -39,7 +38,7 @@ func main() {
 	r.Use(logger.ResponseLogger)
 	r.Use(logger.RequestLogger)
 	r.Use(gzip.GzipMiddleware)
-	r.Use(jsonMiddleware)
+	//r.Use(jsonMiddleware)
 	r.Post("/", shortenerInstance.PostHandler)
 	r.Get("/{id}", shortenerInstance.GetHandler)
 	r.Post("/api/shorten", shortenerInstance.JSONPostHandler)
@@ -50,14 +49,15 @@ func main() {
 	}
 }
 
-func jsonMiddleware(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.Header.Get("Content-Type"), "application/json") &&
-			r.Method == http.MethodPost {
-			h = http.HandlerFunc(shortenerInstance.JSONPostHandler)
-			h.ServeHTTP(w, r)
-		} else {
-			h.ServeHTTP(w, r)
-		}
-	})
-}
+//
+//func jsonMiddleware(h http.Handler) http.Handler {
+//	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+//		if strings.Contains(r.Header.Get("Content-Type"), "application/json") &&
+//			r.Method == http.MethodPost {
+//			h = http.HandlerFunc(shortenerInstance.JSONPostHandler)
+//			h.ServeHTTP(w, r)
+//		} else {
+//			h.ServeHTTP(w, r)
+//		}
+//	})
+//}
