@@ -54,6 +54,7 @@ func GzipMiddleware(h http.Handler) http.Handler {
 			}(gz)
 
 			rw := &gzipResponseWriter{w: w, gz: gz}
+			rw.Header().Set("Accept-Encoding", "gzip")
 			r.Body = reader
 			h.ServeHTTP(rw, r)
 		} else {
