@@ -52,7 +52,8 @@ func main() {
 
 func jsonMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+		if strings.Contains(r.Header.Get("Content-Type"), "application/json") &&
+			r.Method == http.MethodPost {
 			h = http.HandlerFunc(shortenerInstance.JSONPostHandler)
 			h.ServeHTTP(w, r)
 		} else {
