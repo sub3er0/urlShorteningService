@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/sub3er0/urlShorteningService/internal/config"
+	"github.com/sub3er0/urlShorteningService/internal/gzip"
 	"github.com/sub3er0/urlShorteningService/internal/logger"
 	"github.com/sub3er0/urlShorteningService/internal/shortener"
 	"github.com/sub3er0/urlShorteningService/internal/storage"
@@ -34,6 +35,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(logger.ResponseLogger)
 	r.Use(logger.RequestLogger)
+	r.Use(gzip.GzipMiddleware)
 	r.Post("/", shortenerInstance.PostHandler)
 	r.Get("/{id}", shortenerInstance.GetHandler)
 	r.Post("/api/shorten", shortenerInstance.JSONPostHandler)
