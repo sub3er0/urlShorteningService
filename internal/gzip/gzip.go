@@ -28,9 +28,23 @@ func (rw *gzipResponseWriter) WriteHeader(statusCode int) {
 
 func GzipMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") &&
+			contains(r.Header.Get("Content-Type"), AllowedContentTypes) {
 			w.Header().Set("Content-Encoding", "gzip")
 			gz := gzip.NewWriter(w)
+			reader, err := gzip.NewReader(r.Body)
+
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			defer func(reader *gzip.Reader) {
+				err := reader.Close()
+				if err != nil {
+
+				}
+			}(reader)
 
 			defer func(gz *gzip.Writer) {
 				err := gz.Close()
@@ -40,11 +54,11 @@ func GzipMiddleware(h http.Handler) http.Handler {
 			}(gz)
 
 			rw := &gzipResponseWriter{w: w, gz: gz}
+			r.Body = reader
 			h.ServeHTTP(rw, r)
 		} else {
 			h.ServeHTTP(w, r)
 		}
-
 	})
 }
 
