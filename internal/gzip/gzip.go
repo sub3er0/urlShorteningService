@@ -2,7 +2,7 @@ package gzip
 
 import (
 	"compress/gzip"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -70,7 +70,7 @@ func GzipRequestDecompressor(next http.Handler) http.Handler {
 			}
 
 			defer reader.Close()
-			r.Body = ioutil.NopCloser(reader)
+			r.Body = io.NopCloser(reader)
 			next.ServeHTTP(w, r)
 		} else {
 			next.ServeHTTP(w, r)
