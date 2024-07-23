@@ -10,7 +10,10 @@ import (
 	"go.uber.org/zap"
 	"log"
 	"net/http"
+	"strings"
 )
+
+var shortenerInstance *shortener.URLShortener
 
 func main() {
 	cfg, err := config.InitConfig()
@@ -19,7 +22,7 @@ func main() {
 		log.Fatalf("Error while initializing config: %v", err)
 	}
 
-	shortenerInstance := &shortener.URLShortener{
+	shortenerInstance = &shortener.URLShortener{
 		Storage:       &storage.InMemoryStorage{Urls: make(map[string]string)},
 		ServerAddress: cfg.ServerAddress,
 		BaseURL:       cfg.BaseURL,
@@ -36,6 +39,7 @@ func main() {
 	r.Use(logger.ResponseLogger)
 	r.Use(logger.RequestLogger)
 	r.Use(gzip.GzipMiddleware)
+	r.Use(jsonMiddleware)
 	r.Post("/", shortenerInstance.PostHandler)
 	r.Get("/{id}", shortenerInstance.GetHandler)
 	r.Post("/api/shorten", shortenerInstance.JSONPostHandler)
@@ -44,4 +48,15 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error starting server: %s", err)
 	}
+}
+
+func jsonMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.Header.Get("Content-Type"), "application/json") {
+			h = http.HandlerFunc(shortenerInstance.JSONPostHandler)
+			h.ServeHTTP(w, r)
+		} else {
+			h.ServeHTTP(w, r)
+		}
+	})
 }
