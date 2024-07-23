@@ -2,6 +2,7 @@ package gzip
 
 import (
 	"compress/gzip"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
@@ -26,25 +27,11 @@ func (rw *gzipResponseWriter) WriteHeader(statusCode int) {
 	rw.w.WriteHeader(statusCode)
 }
 
-func GzipMiddleware(h http.Handler) http.Handler {
+func GzipResponseCompressor(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") &&
+		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") &&
 			contains(r.Header.Get("Content-Type"), AllowedContentTypes) {
-			w.Header().Set("Content-Encoding", "gzip")
 			gz := gzip.NewWriter(w)
-			reader, err := gzip.NewReader(r.Body)
-
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			defer func(reader *gzip.Reader) {
-				err := reader.Close()
-				if err != nil {
-
-				}
-			}(reader)
 
 			defer func(gz *gzip.Writer) {
 				err := gz.Close()
@@ -54,8 +41,7 @@ func GzipMiddleware(h http.Handler) http.Handler {
 			}(gz)
 
 			rw := &gzipResponseWriter{w: w, gz: gz}
-			rw.Header().Set("Accept-Encoding", "gzip")
-			r.Body = reader
+			rw.Header().Set("Content-Encoding", "gzip")
 			h.ServeHTTP(rw, r)
 		} else {
 			h.ServeHTTP(w, r)
@@ -71,4 +57,23 @@ func contains(target string, list []string) bool {
 	}
 
 	return false
+}
+
+func GzipRequestDecompressor(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+			reader, err := gzip.NewReader(r.Body)
+
+			if err != nil {
+				http.Error(w, "Error decompressing request body", http.StatusInternalServerError)
+				return
+			}
+
+			defer reader.Close()
+			r.Body = ioutil.NopCloser(reader)
+			next.ServeHTTP(w, r)
+		} else {
+			next.ServeHTTP(w, r)
+		}
+	})
 }
