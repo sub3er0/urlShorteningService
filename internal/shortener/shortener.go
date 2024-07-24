@@ -43,7 +43,7 @@ func (us *URLShortener) getShortURL(URL string) (string, bool) {
 }
 
 func (us *URLShortener) LoadData() {
-	file, err := os.OpenFile(us.FileStoragePath, os.O_RDONLY, 0666)
+	file, err := os.OpenFile(us.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
 
 	if err != nil {
 		log.Fatalf("File open fail: %v", err)
