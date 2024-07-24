@@ -1,0 +1,2 @@
+{"uuid":1,"short_url":"GEyDZn","original_url":"https://practicum.yandex.ru"}
+{"uuid":2,"short_url":"vgVZ06","original_url":"https://practicum.ru"}

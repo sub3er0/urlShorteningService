@@ -22,10 +22,12 @@ func main() {
 	}
 
 	shortenerInstance = &shortener.URLShortener{
-		Storage:       &storage.InMemoryStorage{Urls: make(map[string]string)},
-		ServerAddress: cfg.ServerAddress,
-		BaseURL:       cfg.BaseURL,
+		Storage:         &storage.InMemoryStorage{Urls: make(map[string]string)},
+		ServerAddress:   cfg.ServerAddress,
+		BaseURL:         cfg.BaseURL,
+		FileStoragePath: cfg.FileStoragePath,
 	}
+	shortenerInstance.LoadData()
 	zapLogger, err := zap.NewDevelopment()
 
 	if err != nil {
@@ -48,16 +50,3 @@ func main() {
 		log.Fatalf("Error starting server: %s", err)
 	}
 }
-
-//
-//func jsonMiddleware(h http.Handler) http.Handler {
-//	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//		if strings.Contains(r.Header.Get("Content-Type"), "application/json") &&
-//			r.Method == http.MethodPost {
-//			h = http.HandlerFunc(shortenerInstance.JSONPostHandler)
-//			h.ServeHTTP(w, r)
-//		} else {
-//			h.ServeHTTP(w, r)
-//		}
-//	})
-//}

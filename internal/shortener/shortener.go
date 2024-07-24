@@ -1,21 +1,23 @@
 package shortener
 
 import (
+	"bufio"
 	"encoding/json"
-	"fmt"
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"io"
 	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 )
 
 // URLShortener Структура URLShortener, использующая интерфейс хранения
 type URLShortener struct {
-	Storage       storage.URLStorage
-	ServerAddress string
-	BaseURL       string
+	Storage         storage.URLStorage
+	ServerAddress   string
+	BaseURL         string
+	FileStoragePath string
 }
 
 type JSONResponseBody struct {
@@ -38,6 +40,41 @@ func (us *URLShortener) SetURL(shortURL, longURL string) error {
 
 func (us *URLShortener) getShortURL(URL string) (string, bool) {
 	return us.Storage.GetShortURL(URL)
+}
+
+func (us *URLShortener) LoadData() {
+	file, err := os.OpenFile(us.FileStoragePath, os.O_RDONLY, 0666)
+
+	if err != nil {
+		log.Fatalf("File open fail: %v", err)
+	}
+
+	reader := bufio.NewReader(file)
+
+	for {
+		data, err := reader.ReadBytes('\n')
+
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			log.Fatalf("File read fail: %v", err)
+		}
+
+		var fileStorageRow storage.FileStorageRow
+		err = json.Unmarshal(data, &fileStorageRow)
+
+		if err != nil {
+			log.Fatalf("Deserialization fail: %v", err)
+		}
+
+		err = us.Storage.Set(fileStorageRow.ShortURL, fileStorageRow.URL)
+
+		if err != nil {
+			log.Fatalf("In memmory storage fail: %v", err)
+		}
+	}
 }
 
 func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +111,7 @@ func (us *URLShortener) JSONPostHandler(w http.ResponseWriter, r *http.Request) 
 	err = json.Unmarshal(body, &requestBody)
 
 	if err != nil {
-		fmt.Println("Deserialization fail:", err)
+		log.Fatalf("Deserialization fail: %v", err)
 		return
 	}
 
@@ -139,6 +176,13 @@ func (us *URLShortener) getShortKey(postURL string) string {
 		log.Fatalf("Error while working with storage: %v", err)
 	}
 
+	FileStorageRowStruct := storage.FileStorageRow{
+		Id:       us.Storage.GetUrlCount(),
+		ShortURL: shortKey,
+		URL:      postURL,
+	}
+	storage.Save(FileStorageRowStruct, us.FileStoragePath)
+
 	return shortKey
 }
 
@@ -178,7 +222,7 @@ func (us *URLShortener) buildJSONResponse(w http.ResponseWriter, r *http.Request
 	jsonData, err := json.Marshal(response)
 
 	if err != nil {
-		fmt.Println("Deserialization fail:", err)
+		log.Fatalf("Serialization fail: %v", err)
 		return
 	}
 
