@@ -177,7 +177,7 @@ func (us *URLShortener) getShortKey(postURL string) string {
 	}
 
 	FileStorageRowStruct := storage.FileStorageRow{
-		Id:       us.Storage.GetUrlCount(),
+		ID:       us.Storage.GetURLCount(),
 		ShortURL: shortKey,
 		URL:      postURL,
 	}

@@ -10,7 +10,7 @@ func (ims *InMemoryStorage) GetURL(shortURL string) (string, bool) {
 	return longURL, ok
 }
 
-func (ims *InMemoryStorage) GetUrlCount() int {
+func (ims *InMemoryStorage) GetURLCount() int {
 	return len(ims.Urls)
 }
 
