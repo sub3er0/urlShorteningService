@@ -22,7 +22,8 @@ func Save(row FileStorageRow, fileStoragePath string) {
 	file, err := os.OpenFile(fileStoragePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 
 	if err != nil {
-		log.Fatalf("Error opening file:  %v", err)
+		log.Printf("Error opening file:  %v\n", err)
+		return
 	}
 
 	defer file.Close()
