@@ -145,7 +145,6 @@ func TestGetHandler_ValidRequest(t *testing.T) {
 		Storage: &storage.InMemoryStorage{
 			Urls: map[string]string{"shortURL": "https://www.example.com"},
 		},
-		DataStorage: &storage.FileStorage{FileStoragePath: "./log.txt"},
 	}
 	_, err := http.NewRequest(http.MethodGet, "/shortURL", nil)
 
