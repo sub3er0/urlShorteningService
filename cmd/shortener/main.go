@@ -22,10 +22,10 @@ func main() {
 	}
 
 	shortenerInstance = &shortener.URLShortener{
-		Storage:         &storage.InMemoryStorage{Urls: make(map[string]string)},
-		ServerAddress:   cfg.ServerAddress,
-		BaseURL:         cfg.BaseURL,
-		FileStoragePath: cfg.FileStoragePath,
+		Storage:       &storage.InMemoryStorage{Urls: make(map[string]string)},
+		ServerAddress: cfg.ServerAddress,
+		BaseURL:       cfg.BaseURL,
+		DataStorage:   &storage.FileStorage{FileStoragePath: cfg.FileStoragePath},
 	}
 	shortenerInstance.LoadData()
 	zapLogger, err := zap.NewDevelopment()
