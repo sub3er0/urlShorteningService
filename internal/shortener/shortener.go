@@ -54,6 +54,8 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Location", storedURL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 		return
+	} else {
+		http.Error(w, "NotFound", http.StatusNotFound)
 	}
 }
 
