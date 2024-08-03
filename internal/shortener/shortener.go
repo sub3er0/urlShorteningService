@@ -74,22 +74,32 @@ func (us *URLShortener) JSONPostHandler(w http.ResponseWriter, r *http.Request) 
 	err = json.Unmarshal(body, &requestBody)
 
 	if err != nil {
-		log.Fatalf("Deserialization fail: %v", err)
 		return
 	}
 
-	bodyURL, err := url.ParseRequestURI(string(requestBody.URL))
+	bodyURL, err := url.ParseRequestURI(requestBody.URL)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	shortKey := us.getShortKey(bodyURL.String())
+	shortKey, err := us.getShortKey(bodyURL.String())
+
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
 	var responseBody JSONResponseBody
 	responseBody.Result = shortKey
 
-	us.buildJSONResponse(w, r, responseBody)
+	err = us.buildJSONResponse(w, responseBody)
+
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
@@ -113,30 +123,39 @@ func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	postURL := u.String()
-	shortKey := us.getShortKey(postURL)
-	us.buildResponse(w, r, shortKey)
+	shortKey, err := us.getShortKey(postURL)
+
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusBadRequest)
+		return
+	}
+
+	us.buildResponse(w, shortKey)
 
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 
 		if err != nil {
-			log.Fatalf("Error while initializing config: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
 		}
 	}(r.Body)
+
+	return
 }
 
-func (us *URLShortener) getShortKey(postURL string) string {
+func (us *URLShortener) getShortKey(postURL string) (string, error) {
 	shortKey, ok := us.getShortURL(postURL)
 
 	if ok {
-		return shortKey
+		return shortKey, nil
 	}
 
 	shortKey = generateShortKey()
 	err := us.SetURL(shortKey, postURL)
 
 	if err != nil {
-		log.Fatalf("Error while working with storage: %v", err)
+		return "", err
 	}
 
 	FileStorageRowStruct := storage.DataStorageRow{
@@ -144,9 +163,13 @@ func (us *URLShortener) getShortKey(postURL string) string {
 		ShortURL: shortKey,
 		URL:      postURL,
 	}
-	us.DataStorage.Save(FileStorageRowStruct)
+	err = us.DataStorage.Save(FileStorageRowStruct)
 
-	return shortKey
+	if err != nil {
+		return "", err
+	}
+
+	return shortKey, nil
 }
 
 func generateShortKey() string {
@@ -162,7 +185,7 @@ func generateShortKey() string {
 	return string(shortKey)
 }
 
-func (us *URLShortener) buildResponse(w http.ResponseWriter, r *http.Request, shortKey string) {
+func (us *URLShortener) buildResponse(w http.ResponseWriter, shortKey string) {
 	w.Header().Set("content-type", "text/plain")
 	w.WriteHeader(http.StatusCreated)
 
@@ -170,10 +193,15 @@ func (us *URLShortener) buildResponse(w http.ResponseWriter, r *http.Request, sh
 		us.BaseURL = us.BaseURL + "/"
 	}
 
-	w.Write([]byte(us.BaseURL + shortKey))
+	_, err := w.Write([]byte(us.BaseURL + shortKey))
+
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 }
 
-func (us *URLShortener) buildJSONResponse(w http.ResponseWriter, r *http.Request, response JSONResponseBody) {
+func (us *URLShortener) buildJSONResponse(w http.ResponseWriter, response JSONResponseBody) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
@@ -185,20 +213,34 @@ func (us *URLShortener) buildJSONResponse(w http.ResponseWriter, r *http.Request
 	jsonData, err := json.Marshal(response)
 
 	if err != nil {
-		log.Fatalf("Serialization fail: %v", err)
-		return
+		log.Printf("Serialization fail: %v", err)
+		return err
 	}
 
-	w.Write([]byte(jsonData))
+	_, err = w.Write(jsonData)
+
+	if err != nil {
+		log.Printf("Write data error: %v", err)
+		return err
+	}
+
+	return nil
 }
 
-func (us *URLShortener) LoadData() {
-	DataStorageRows := us.DataStorage.LoadData()
+func (us *URLShortener) LoadData() error {
+	DataStorageRows, err := us.DataStorage.LoadData()
+
+	if err != nil {
+		return err
+	}
+
 	for _, dataStorageRow := range DataStorageRows {
 		err := us.Storage.Set(dataStorageRow.ShortURL, dataStorageRow.URL)
 
 		if err != nil {
-			log.Fatalf("In memmory storage fail: %v", err)
+			return err
 		}
 	}
+
+	return nil
 }

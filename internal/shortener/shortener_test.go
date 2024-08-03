@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
 	"github.com/sub3er0/urlShorteningService/internal/storage"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -24,7 +23,6 @@ func TestURLShortener_JsonPostHandler(t *testing.T) {
 	jsonBody, err := json.Marshal(requestBody)
 
 	if err != nil {
-		log.Fatalf("Serialization fail: %v", err)
 		return
 	}
 
@@ -76,7 +74,6 @@ func TestJsonPostHandler_InvalidURL(t *testing.T) {
 	jsonBody, err := json.Marshal(requestBody)
 
 	if err != nil {
-		log.Fatalf("Serialization fail: %v", err)
 		return
 	}
 
@@ -106,7 +103,6 @@ func TestURLShortener_JsonPostHandlerExistedUrl(t *testing.T) {
 	jsonBody, err := json.Marshal(requestBody)
 
 	if err != nil {
-		log.Fatalf("Serialization fail: %v", err)
 		return
 	}
 

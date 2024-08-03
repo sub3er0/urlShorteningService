@@ -27,7 +27,12 @@ func main() {
 		BaseURL:       cfg.BaseURL,
 		DataStorage:   &storage.FileStorage{FileStoragePath: cfg.FileStoragePath},
 	}
-	shortenerInstance.LoadData()
+	err = shortenerInstance.LoadData()
+
+	if err != nil {
+		log.Printf("In memmory storage fail: %v", err)
+	}
+
 	zapLogger, err := zap.NewDevelopment()
 
 	if err != nil {
@@ -38,8 +43,7 @@ func main() {
 	logger.Sugar = *zapLogger.Sugar()
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger)
-	//r.Use(gzip.GzipResponseCompressor)
-	r.Use(gzip.GzipRequestDecompressor)
+	r.Use(gzip.RequestDecompressor)
 	r.Post("/", shortenerInstance.PostHandler)
 	r.Get("/{id}", shortenerInstance.GetHandler)
 	r.Post("/api/shorten", shortenerInstance.JSONPostHandler)

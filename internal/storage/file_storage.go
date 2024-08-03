@@ -18,33 +18,35 @@ type FileStorage struct {
 	FileStoragePath string
 }
 
-func (fs *FileStorage) Save(row DataStorageRow) {
+func (fs *FileStorage) Save(row DataStorageRow) error {
 	jsonRow, err := json.Marshal(row)
 
 	if err != nil {
-		log.Fatalf("Serialization fail: %v", err)
+		return err
 	}
 
 	file, err := os.OpenFile(fs.FileStoragePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 
 	if err != nil {
 		log.Printf("Error opening file:  %v\n", err)
-		return
+		return err
 	}
 
 	defer file.Close()
 	jsonRow = append(jsonRow, '\n')
 	_, err = file.Write(jsonRow)
 	if err != nil {
-		log.Fatalf("Error writing to file:  %v", err)
+		return err
 	}
+
+	return nil
 }
 
-func (fs *FileStorage) LoadData() []DataStorageRow {
+func (fs *FileStorage) LoadData() ([]DataStorageRow, error) {
 	file, err := os.OpenFile(fs.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
 
 	if err != nil {
-		log.Fatalf("File open fail: %v", err)
+		return nil, err
 	}
 
 	reader := bufio.NewReader(file)
@@ -59,17 +61,17 @@ func (fs *FileStorage) LoadData() []DataStorageRow {
 		}
 
 		if err != nil {
-			log.Fatalf("File read fail: %v", err)
+			return nil, err
 		}
 
 		err = json.Unmarshal(data, &dataStorageRow)
 
 		if err != nil {
-			log.Fatalf("Deserialization fail: %v", err)
+			return nil, err
 		}
 
 		dataStorageRows = append(dataStorageRows, dataStorageRow)
 	}
 
-	return dataStorageRows
+	return dataStorageRows, nil
 }

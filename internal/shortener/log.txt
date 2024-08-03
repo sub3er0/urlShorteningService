@@ -1,2 +1,6 @@
 {"uuid":1,"short_url":"FVEE53","original_url":"https://www.example.com"}
 {"uuid":1,"short_url":"aTEEg7","original_url":"https://www.example.com"}
+{"uuid":1,"short_url":"MvpWFg","original_url":"https://www.example.com"}
+{"uuid":1,"short_url":"qzwTKN","original_url":"https://www.example.com"}
+{"uuid":1,"short_url":"6i4AZD","original_url":"https://www.example.com"}
+{"uuid":1,"short_url":"mEX39E","original_url":"https://www.example.com"}
