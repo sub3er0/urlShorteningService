@@ -140,8 +140,6 @@ func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}(r.Body)
-
-	return
 }
 
 func (us *URLShortener) getShortKey(postURL string) (string, error) {
