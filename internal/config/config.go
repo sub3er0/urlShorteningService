@@ -7,8 +7,9 @@ import (
 )
 
 type Config struct {
-	ServerAddress string
-	BaseURL       string
+	ServerAddress   string
+	BaseURL         string
+	FileStoragePath string
 }
 
 func InitConfig() (*Config, error) {
@@ -16,6 +17,7 @@ func InitConfig() (*Config, error) {
 
 	flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080/", "Базовый адрес для сокращенных URL")
 	flag.StringVar(&cfg.ServerAddress, "a", "localhost:8080", "Адрес HTTP-сервера")
+	flag.StringVar(&cfg.FileStoragePath, "f", "./log.txt", "Путь до файла")
 	flag.Parse()
 
 	if ServerAddress := os.Getenv("SERVER_ADDRESS"); ServerAddress != "" {
@@ -24,6 +26,10 @@ func InitConfig() (*Config, error) {
 
 	if BaseURL := os.Getenv("BASE_URL"); BaseURL != "" {
 		cfg.BaseURL = BaseURL
+	}
+
+	if FileStoragePath := os.Getenv("FILE_STORAGE_PATH"); FileStoragePath != "" {
+		cfg.FileStoragePath = FileStoragePath
 	}
 
 	if cfg.ServerAddress == "" {
