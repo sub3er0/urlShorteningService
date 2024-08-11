@@ -22,8 +22,11 @@ func main() {
 	}
 
 	pgStorage := storage.PgStorage{}
-	pgStorage.Init(cfg.DatabaseDsn)
-	defer pgStorage.Close()
+
+	if cfg.DatabaseDsn != "" {
+		pgStorage.Init(cfg.DatabaseDsn)
+		defer pgStorage.Close()
+	}
 
 	shortenerInstance = &shortener.URLShortener{
 		Storage:       &storage.InMemoryStorage{Urls: make(map[string]string)},
