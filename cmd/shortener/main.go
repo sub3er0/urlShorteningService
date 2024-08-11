@@ -30,7 +30,7 @@ func main() {
 		ServerAddress: cfg.ServerAddress,
 		BaseURL:       cfg.BaseURL,
 		DataStorage:   &storage.FileStorage{FileStoragePath: cfg.FileStoragePath},
-		DbStorage:     pgStorage,
+		DBStorage:     pgStorage,
 	}
 	err = shortenerInstance.LoadData()
 

@@ -16,7 +16,7 @@ type URLShortener struct {
 	ServerAddress string
 	BaseURL       string
 	DataStorage   storage.DataStorageInterface
-	DbStorage     storage.PgStorage
+	DBStorage     storage.PgStorage
 }
 
 type JSONResponseBody struct {
@@ -66,7 +66,7 @@ func (us *URLShortener) PingHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ok := us.DbStorage.Ping()
+	ok := us.DBStorage.Ping()
 
 	if ok {
 		w.WriteHeader(http.StatusOK)
