@@ -16,6 +16,7 @@ type URLShortener struct {
 	ServerAddress string
 	BaseURL       string
 	DataStorage   storage.DataStorageInterface
+	DbStorage     storage.PgStorage
 }
 
 type JSONResponseBody struct {
@@ -56,6 +57,22 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 		http.Error(w, "NotFound", http.StatusNotFound)
+	}
+}
+
+func (us *URLShortener) PingHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Only GET requests are allowed!", http.StatusBadRequest)
+		return
+	}
+
+	ok := us.DbStorage.Ping()
+
+	if ok {
+		w.WriteHeader(http.StatusOK)
+		return
+	} else {
+		http.Error(w, "Connection error", http.StatusInternalServerError)
 	}
 }
 

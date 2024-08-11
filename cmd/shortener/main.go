@@ -21,11 +21,16 @@ func main() {
 		log.Fatalf("Error while initializing config: %v", err)
 	}
 
+	pgStorage := storage.PgStorage{}
+	pgStorage.Init(cfg.DatabaseDsn)
+	defer pgStorage.Close()
+
 	shortenerInstance = &shortener.URLShortener{
 		Storage:       &storage.InMemoryStorage{Urls: make(map[string]string)},
 		ServerAddress: cfg.ServerAddress,
 		BaseURL:       cfg.BaseURL,
 		DataStorage:   &storage.FileStorage{FileStoragePath: cfg.FileStoragePath},
+		DbStorage:     pgStorage,
 	}
 	err = shortenerInstance.LoadData()
 
@@ -46,6 +51,7 @@ func main() {
 	r.Use(gzip.RequestDecompressor)
 	r.Post("/", shortenerInstance.PostHandler)
 	r.Get("/{id}", shortenerInstance.GetHandler)
+	r.Get("/ping", shortenerInstance.PingHandler)
 	r.Post("/api/shorten", shortenerInstance.JSONPostHandler)
 	err = http.ListenAndServe(cfg.ServerAddress, r)
 
