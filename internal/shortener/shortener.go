@@ -64,10 +64,12 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 			},
 		}
 
-		_, err = client.Get(storedURL)
+		response, err := client.Get(storedURL)
 		if err != nil {
 			http.Error(w, "HTTP redirect blocked", http.StatusBadRequest)
+			return
 		}
+		defer response.Body.Close()
 
 		w.Header().Set("Location", storedURL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
