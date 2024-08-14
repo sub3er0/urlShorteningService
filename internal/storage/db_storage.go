@@ -45,11 +45,11 @@ func (pgs *PgStorage) GetShortURL(URL string) (string, bool) {
 		return "", false
 	}
 
-	shortUrl := ""
+	shortURL := ""
 	rowsCount := 0
 
 	for rows.Next() {
-		if err := rows.Scan(&shortUrl); err != nil {
+		if err := rows.Scan(&shortURL); err != nil {
 			return "", false
 		}
 
@@ -60,7 +60,7 @@ func (pgs *PgStorage) GetShortURL(URL string) (string, bool) {
 		return "", false
 	}
 
-	return shortUrl, true
+	return shortURL, true
 }
 
 func (pgs *PgStorage) Init(connectionString string) error {
