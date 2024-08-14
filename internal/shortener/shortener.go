@@ -54,8 +54,8 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 		parsedURL, err := url.Parse(storedURL)
 
 		if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
-			w.Header().Set("Location", storedURL)
-			http.Error(w, "HTTP redirect blocked", http.StatusNotFound)
+			w.Header().Set("Location", "http://"+storedURL)
+			w.WriteHeader(http.StatusTemporaryRedirect)
 			return
 		}
 
