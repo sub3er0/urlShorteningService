@@ -15,7 +15,6 @@ type URLShortener struct {
 	Storage       storage.URLStorage
 	ServerAddress string
 	BaseURL       string
-	DataStorage   storage.DataStorageInterface
 }
 
 type JSONResponseBody struct {
@@ -26,14 +25,8 @@ type RequestBody struct {
 	URL string `json:"url"`
 }
 
-// GetURL Реализация функции получения URL
 func (us *URLShortener) GetURL(shortURL string) (string, bool) {
 	return us.Storage.GetURL(shortURL)
-}
-
-// SetURL Реализация функции сохранения URL
-func (us *URLShortener) SetURL(shortURL, longURL string) error {
-	return us.Storage.Set(shortURL, longURL)
 }
 
 func (us *URLShortener) getShortURL(URL string) (string, bool) {
@@ -56,6 +49,22 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 		http.Error(w, "NotFound", http.StatusNotFound)
+	}
+}
+
+func (us *URLShortener) PingHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Only GET requests are allowed!", http.StatusBadRequest)
+		return
+	}
+
+	ok := us.Storage.Ping()
+
+	if ok {
+		w.WriteHeader(http.StatusOK)
+		return
+	} else {
+		http.Error(w, "Connection error", http.StatusInternalServerError)
 	}
 }
 
@@ -152,18 +161,7 @@ func (us *URLShortener) getShortKey(postURL string) (string, error) {
 	}
 
 	shortKey = generateShortKey()
-	err := us.SetURL(shortKey, postURL)
-
-	if err != nil {
-		return "", err
-	}
-
-	FileStorageRowStruct := storage.DataStorageRow{
-		ID:       us.Storage.GetURLCount(),
-		ShortURL: shortKey,
-		URL:      postURL,
-	}
-	err = us.DataStorage.Save(FileStorageRowStruct)
+	err := us.Storage.Save(shortKey, postURL)
 
 	if err != nil {
 		return "", err
@@ -227,20 +225,20 @@ func (us *URLShortener) buildJSONResponse(w http.ResponseWriter, response JSONRe
 	return nil
 }
 
-func (us *URLShortener) LoadData() error {
-	DataStorageRows, err := us.DataStorage.LoadData()
-
-	if err != nil {
-		return err
-	}
-
-	for _, dataStorageRow := range DataStorageRows {
-		err := us.Storage.Set(dataStorageRow.ShortURL, dataStorageRow.URL)
-
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
+//func (us *URLShortener) LoadData() error {
+//	DataStorageRows, err := us.Storage.LoadData()
+//
+//	if err != nil {
+//		return err
+//	}
+//
+//	for _, dataStorageRow := range DataStorageRows {
+//		err := us.Storage.Save(dataStorageRow)
+//
+//		if err != nil {
+//			return err
+//		}
+//	}
+//
+//	return nil
+//}

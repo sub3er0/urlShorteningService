@@ -18,7 +18,108 @@ type FileStorage struct {
 	FileStoragePath string
 }
 
-func (fs *FileStorage) Save(row DataStorageRow) error {
+func (fs *FileStorage) GetURL(shortURL string) (string, bool) {
+	file, err := os.OpenFile(fs.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
+
+	if err != nil {
+		return "", false
+	}
+
+	defer file.Close()
+	reader := bufio.NewReader(file)
+	var dataStorageRow DataStorageRow
+
+	for {
+		data, err := reader.ReadBytes('\n')
+
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return "", false
+		}
+
+		err = json.Unmarshal(data, &dataStorageRow)
+
+		if err != nil {
+			return "", false
+		}
+
+		if dataStorageRow.ShortURL == shortURL {
+			return dataStorageRow.URL, true
+		}
+	}
+
+	return "", false
+}
+
+func (fs *FileStorage) GetURLCount() int {
+	file, err := os.OpenFile(fs.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
+
+	if err != nil {
+		return 0
+	}
+
+	defer file.Close()
+	reader := bufio.NewReader(file)
+	count := 0
+
+	for {
+		_, err := reader.ReadBytes('\n')
+
+		if err == io.EOF {
+			break
+		}
+
+		count++
+	}
+
+	return count
+}
+
+func (fs *FileStorage) GetShortURL(URL string) (string, bool) {
+	file, err := os.OpenFile(fs.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
+
+	if err != nil {
+		return "", false
+	}
+
+	defer file.Close()
+	reader := bufio.NewReader(file)
+	var dataStorageRow DataStorageRow
+
+	for {
+		data, err := reader.ReadBytes('\n')
+
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			return "", false
+		}
+
+		err = json.Unmarshal(data, &dataStorageRow)
+
+		if err != nil {
+			return "", false
+		}
+
+		if dataStorageRow.URL == URL {
+			return dataStorageRow.ShortURL, true
+		}
+	}
+
+	return "", false
+}
+
+func (fs *FileStorage) Save(ShortURL string, URL string) error {
+	row := DataStorageRow{
+		ID:       fs.GetURLCount(),
+		ShortURL: ShortURL,
+		URL:      URL,
+	}
 	jsonRow, err := json.Marshal(row)
 
 	if err != nil {
@@ -49,6 +150,7 @@ func (fs *FileStorage) LoadData() ([]DataStorageRow, error) {
 		return nil, err
 	}
 
+	defer file.Close()
 	reader := bufio.NewReader(file)
 	var dataStorageRow DataStorageRow
 	var dataStorageRows []DataStorageRow
@@ -74,4 +176,8 @@ func (fs *FileStorage) LoadData() ([]DataStorageRow, error) {
 	}
 
 	return dataStorageRows, nil
+}
+
+func (fs *FileStorage) Ping() bool {
+	return true
 }

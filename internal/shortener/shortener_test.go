@@ -18,7 +18,6 @@ func TestJsonPostHandler_InvalidURL(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
 	}
 	var requestBody RequestBody
 	requestBody.URL = "invalid-url"
@@ -46,7 +45,6 @@ func TestURLShortener_JsonPostHandlerExistedUrl(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
 	}
 
 	var requestBody RequestBody
@@ -73,7 +71,6 @@ func TestURLShortener_PostHandler(t *testing.T) {
 		Storage:       &storage.InMemoryStorage{Urls: make(map[string]string)},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
 	}
 
 	req, err := http.NewRequest(http.MethodPost, "http://localhost/", bytes.NewReader([]byte("https://www.example.com")))
@@ -120,7 +117,6 @@ func TestPostHandler_InvalidMethod(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
 	}
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
 
@@ -143,7 +139,6 @@ func TestPostHandler_InvalidURL(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
 	}
 	body := []byte("invalid-url")
 	req, err := http.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
@@ -164,7 +159,6 @@ func TestURLShortener_PostHandlerExistedUrl(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
 	}
 
 	req, err := http.NewRequest(http.MethodPost, "http://localhost/", bytes.NewReader([]byte("https://www.example.com")))
@@ -185,7 +179,6 @@ func TestURLShortener_GetShortKeyExist(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
 	}
 	shortKey, ok := us.getShortURL("shortURL")
 
@@ -207,7 +200,6 @@ func TestURLShortener_PostHandlerTable(t *testing.T) {
 				Storage:       &storage.InMemoryStorage{Urls: make(map[string]string)},
 				ServerAddress: "localhost:8080",
 				BaseURL:       "http://localhost:8080/",
-				DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
 			},
 			prepare: func(us *URLShortener) {
 				var requestBody RequestBody
@@ -237,7 +229,6 @@ func TestURLShortener_PostHandlerTable(t *testing.T) {
 				},
 				ServerAddress: "localhost:8080",
 				BaseURL:       "http://localhost:8080/",
-				DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
 			},
 			prepare: func(us *URLShortener) {
 				req, err := http.NewRequest(http.MethodGet, "/api/shorten", nil)

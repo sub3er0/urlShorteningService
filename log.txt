@@ -1,3 +1,4 @@
 {"uuid":1,"short_url":"GEyDZn","original_url":"https://practicum.yandex.ru"}
 {"uuid":2,"short_url":"vgVZ06","original_url":"https://practicum.ru"}
 {"uuid":3,"short_url":"ZKAZ7N","original_url":"https://practicum.yandex.rusasdf1"}
+{"uuid":3,"short_url":"kfjthE","original_url":"https://practicum.yandex.rusasdf123"}
