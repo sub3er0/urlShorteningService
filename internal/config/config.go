@@ -18,7 +18,7 @@ func InitConfig() (*Config, error) {
 
 	flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080/", "Базовый адрес для сокращенных URL")
 	flag.StringVar(&cfg.ServerAddress, "a", "localhost:8080", "Адрес HTTP-сервера")
-	flag.StringVar(&cfg.FileStoragePath, "f", "./log.txt", "Путь до файла")
+	flag.StringVar(&cfg.FileStoragePath, "f", "", "Путь до файла")
 	flag.StringVar(
 		&cfg.DatabaseDsn,
 		"d", "",

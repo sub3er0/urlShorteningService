@@ -39,11 +39,6 @@ func main() {
 		ServerAddress: cfg.ServerAddress,
 		BaseURL:       cfg.BaseURL,
 	}
-	//err = shortenerInstance.LoadData()
-
-	//if err != nil {
-	//	log.Printf("In memmory storage fail: %v", err)
-	//}
 
 	zapLogger, err := zap.NewDevelopment()
 
@@ -60,6 +55,7 @@ func main() {
 	r.Get("/{id}", shortenerInstance.GetHandler)
 	r.Get("/ping", shortenerInstance.PingHandler)
 	r.Post("/api/shorten", shortenerInstance.JSONPostHandler)
+	r.Post("/api/shorten/batch", shortenerInstance.JSONBatchHandler)
 	err = http.ListenAndServe(cfg.ServerAddress, r)
 
 	if err != nil {

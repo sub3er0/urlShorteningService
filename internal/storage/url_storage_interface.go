@@ -8,4 +8,5 @@ type URLStorage interface {
 	Save(ShortURL string, URL string) error
 	LoadData() ([]DataStorageRow, error)
 	Ping() bool
+	SaveBatch(dataStorageRows []DataStorageRow) error
 }

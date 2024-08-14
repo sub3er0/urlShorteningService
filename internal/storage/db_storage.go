@@ -45,11 +45,11 @@ func (pgs *PgStorage) GetShortURL(URL string) (string, bool) {
 		return "", false
 	}
 
-	var dataStorageRow DataStorageRow
+	shortUrl := ""
 	rowsCount := 0
 
 	for rows.Next() {
-		if err := rows.Scan(&dataStorageRow.ID, &dataStorageRow.ShortURL, &dataStorageRow.URL); err != nil {
+		if err := rows.Scan(&shortUrl); err != nil {
 			return "", false
 		}
 
@@ -60,7 +60,7 @@ func (pgs *PgStorage) GetShortURL(URL string) (string, bool) {
 		return "", false
 	}
 
-	return dataStorageRow.ShortURL, true
+	return shortUrl, true
 }
 
 func (pgs *PgStorage) Init(connectionString string) error {
@@ -75,9 +75,10 @@ func (pgs *PgStorage) Init(connectionString string) error {
 	createTableSQL := `
 	CREATE TABLE IF NOT EXISTS urls (
 		id SERIAL PRIMARY KEY,
-		url VARCHAR(100),
-		short_url VARCHAR(100)
-	);`
+		url VARCHAR(100) UNIQUE,
+		short_url VARCHAR(100) UNIQUE
+	);
+	ALTER TABLE urls ADD UNIQUE (url, short_url);`
 
 	_, err = pgs.conn.Exec(pgs.ctx, createTableSQL)
 	if err != nil {
@@ -107,4 +108,25 @@ func (pgs *PgStorage) LoadData() ([]DataStorageRow, error) {
 
 func (pgs *PgStorage) Close() {
 	pgs.conn.Close(pgs.ctx)
+}
+
+func (pgs *PgStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
+	batch := &pgx.Batch{}
+	for _, dataStorageRow := range dataStorageRows {
+		batch.Queue(
+			"INSERT INTO urls (url, short_url) VALUES ($1, $2) ON CONFLICT (url, short_url) DO NOTHING",
+			dataStorageRow.URL, dataStorageRow.ShortURL)
+	}
+
+	br := pgs.conn.SendBatch(context.Background(), batch)
+	defer br.Close()
+
+	for i := 0; i < len(dataStorageRows); i++ {
+		_, err := br.Exec()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

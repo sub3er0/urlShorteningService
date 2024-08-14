@@ -5,6 +5,13 @@ type InMemoryStorage struct {
 	Urls map[string]string
 }
 
+func (ims *InMemoryStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
+	for _, row := range dataStorageRows {
+		ims.Urls[row.ShortURL] = row.URL
+	}
+	return nil
+}
+
 func (ims *InMemoryStorage) Save(ShorURL string, URL string) error {
 	ims.Urls[ShorURL] = URL
 	return nil

@@ -8,14 +8,44 @@ import (
 	"os"
 )
 
-type DataStorageRow struct {
-	ID       int    `json:"uuid"`
-	ShortURL string `json:"short_url"`
-	URL      string `json:"original_url"`
-}
-
 type FileStorage struct {
 	FileStoragePath string
+}
+
+func (fs *FileStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
+	urlCount := fs.GetURLCount()
+	for i := range dataStorageRows {
+		urlCount++
+		dataStorageRows[i].ID = urlCount
+	}
+
+	var jsonRows []byte
+
+	for _, dataStorageRow := range dataStorageRows {
+		jsonRow, err := json.Marshal(dataStorageRow)
+		jsonRows = append(jsonRows, jsonRow...)
+		jsonRows = append(jsonRows, '\n')
+
+		if err != nil {
+			return err
+		}
+	}
+
+	file, err := os.OpenFile(fs.FileStoragePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+
+	if err != nil {
+		log.Printf("Error opening file:  %v\n", err)
+		return err
+	}
+
+	defer file.Close()
+
+	_, err = file.Write(jsonRows)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (fs *FileStorage) GetURL(shortURL string) (string, bool) {
