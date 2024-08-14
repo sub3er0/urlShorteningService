@@ -2,6 +2,7 @@ package shortener
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"io"
 	"log"
@@ -35,10 +36,6 @@ type BatchResponseBodyItem struct {
 	ShortURL      string `json:"short_url"`
 }
 
-func (us *URLShortener) GetURL(shortURL string) (string, bool) {
-	return us.Storage.GetURL(shortURL)
-}
-
 func (us *URLShortener) getShortURL(URL string) (string, bool) {
 	return us.Storage.GetShortURL(URL)
 }
@@ -54,12 +51,55 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 	storedURL, ok := us.Storage.GetURL(id)
 
 	if ok {
+		parsedURL, err := url.Parse(storedURL)
+
+		if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+			http.Error(w, "HTTP redirect blocked", http.StatusBadRequest)
+			return
+		}
+
+		client := &http.Client{
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return fmt.Errorf("HTTP redirect blocked")
+			},
+		}
+
+		_, err = client.Get(storedURL)
+		if err != nil {
+			http.Error(w, "HTTP redirect blocked", http.StatusBadRequest)
+		}
+
 		w.Header().Set("Location", storedURL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 		return
 	} else {
 		http.Error(w, "NotFound", http.StatusNotFound)
 	}
+}
+
+func expand(originalURL string) (string, error) {
+	// Проверяем валидность URL
+	parsedURL, err := url.Parse(originalURL)
+	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+		return "", fmt.Errorf("невалидный URL: %s", originalURL)
+	}
+
+	// Создаем HTTP-клиент с отключением редиректов
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return fmt.Errorf("редиректы заблокированы")
+		},
+	}
+
+	response, err := client.Get(originalURL)
+	if err != nil {
+		return "", fmt.Errorf("ошибка при выполнении GET-запроса: %w", err)
+	}
+	defer response.Body.Close()
+
+	// Дополнительная обработка ответа...
+
+	return "result", nil
 }
 
 func (us *URLShortener) PingHandler(w http.ResponseWriter, r *http.Request) {
