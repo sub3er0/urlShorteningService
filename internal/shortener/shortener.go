@@ -51,28 +51,6 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 	storedURL, ok := us.Storage.GetURL(id)
 
 	if ok {
-		parsedURL, err := url.Parse(storedURL)
-
-		if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
-			w.Header().Set("Location", storedURL)
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		client := &http.Client{
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				return fmt.Errorf("HTTP redirect blocked")
-			},
-		}
-
-		response, err := client.Get(storedURL)
-		if err != nil {
-			w.Header().Set("Location", storedURL)
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		defer response.Body.Close()
-
 		w.Header().Set("Location", storedURL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 		return
