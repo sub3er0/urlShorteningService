@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"log"
 )
 
 const tableName = "urls"
 
 type PgStorage struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 	ctx  context.Context
 }
 
@@ -66,7 +67,7 @@ func (pgs *PgStorage) GetShortURL(URL string) (string, bool) {
 func (pgs *PgStorage) Init(connectionString string) error {
 	pgs.ctx = context.Background()
 	var err error
-	pgs.conn, err = pgx.Connect(pgs.ctx, connectionString)
+	pgs.conn, err = pgxpool.Connect(pgs.ctx, connectionString)
 
 	if err != nil {
 		log.Fatalf("Error while initializing db connection: %v", err)
@@ -107,7 +108,7 @@ func (pgs *PgStorage) LoadData() ([]DataStorageRow, error) {
 }
 
 func (pgs *PgStorage) Close() {
-	pgs.conn.Close(pgs.ctx)
+	pgs.conn.Close()
 }
 
 func (pgs *PgStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
