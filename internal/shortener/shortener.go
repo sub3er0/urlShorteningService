@@ -230,7 +230,7 @@ func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
 	postURL := u.String()
 	shortKey, err := us.getShortKey(postURL)
 
-	if errors.Is(err, ErrShortURLExists) == true {
+	if errors.Is(err, ErrShortURLExists) {
 		us.buildResponse(w, shortKey, true)
 	} else if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusBadRequest)
@@ -282,7 +282,7 @@ func generateShortKey() string {
 func (us *URLShortener) buildResponse(w http.ResponseWriter, shortKey string, isExist bool) {
 	w.Header().Set("content-type", "text/plain")
 
-	if isExist == false {
+	if !isExist {
 		w.WriteHeader(http.StatusCreated)
 	} else {
 		w.WriteHeader(http.StatusConflict)
@@ -302,7 +302,7 @@ func (us *URLShortener) buildResponse(w http.ResponseWriter, shortKey string, is
 
 func (us *URLShortener) buildJSONResponse(w http.ResponseWriter, response JSONResponseBody, isExist bool) error {
 	w.Header().Set("Content-Type", "application/json")
-	if isExist == false {
+	if !isExist {
 		w.WriteHeader(http.StatusCreated)
 	} else {
 		w.WriteHeader(http.StatusConflict)
