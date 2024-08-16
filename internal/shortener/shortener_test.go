@@ -60,7 +60,7 @@ func TestURLShortener_JsonPostHandlerExistedUrl(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	us.JSONPostHandler(w, req)
-	assert.Equal(t, http.StatusCreated, w.Code, "Incorrect status code")
+	assert.Equal(t, http.StatusConflict, w.Code, "Incorrect status code")
 
 	body := w.Body.String()
 	assert.Contains(t, body, "\"result\":\"http://localhost:8080/shortURL\"", "Body must looks like \"result\":\"http://localhost\"")
@@ -166,7 +166,7 @@ func TestURLShortener_PostHandlerExistedUrl(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	us.PostHandler(w, req)
-	assert.Equal(t, http.StatusCreated, w.Code, "Incorrect status code")
+	assert.Equal(t, http.StatusConflict, w.Code, "Incorrect status code")
 
 	body := w.Body.String()
 	assert.Contains(t, body, "http://localhost:8080/shortURL", "Body must looks like http://localhost:8080/shortURL")
@@ -180,7 +180,7 @@ func TestURLShortener_GetShortKeyExist(t *testing.T) {
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
 	}
-	shortKey, err := us.getShortURL("shortURL")
+	shortKey, err := us.getShortURL("https://www.example.com")
 
 	if err != nil {
 		assert.Equal(t, "shortURL", shortKey, "Incorrect Short URL")
