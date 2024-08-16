@@ -2,6 +2,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -38,12 +39,12 @@ func (pgs *PgStorage) GetURLCount() int {
 	return 0
 }
 
-func (pgs *PgStorage) GetShortURL(URL string) (string, bool) {
+func (pgs *PgStorage) GetShortURL(URL string) (string, error) {
 	query := fmt.Sprintf("SELECT short_url FROM %s WHERE url = $1", tableName)
 	rows, err := pgs.conn.Query(pgs.ctx, query, URL)
 
 	if err != nil {
-		return "", false
+		return "", err
 	}
 
 	shortURL := ""
@@ -51,17 +52,17 @@ func (pgs *PgStorage) GetShortURL(URL string) (string, bool) {
 
 	for rows.Next() {
 		if err := rows.Scan(&shortURL); err != nil {
-			return "", false
+			return "", err
 		}
 
 		rowsCount++
 	}
 
 	if rowsCount == 0 {
-		return "", false
+		return "", errors.New("not found")
 	}
 
-	return shortURL, true
+	return shortURL, nil
 }
 
 func (pgs *PgStorage) Init(connectionString string) error {

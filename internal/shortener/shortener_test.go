@@ -180,9 +180,9 @@ func TestURLShortener_GetShortKeyExist(t *testing.T) {
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
 	}
-	shortKey, ok := us.getShortURL("shortURL")
+	shortKey, err := us.getShortURL("shortURL")
 
-	if ok {
+	if err != nil {
 		assert.Equal(t, "shortURL", shortKey, "Incorrect Short URL")
 	}
 }

@@ -4,7 +4,7 @@ package storage
 type URLStorage interface {
 	GetURL(shortURL string) (string, bool)
 	GetURLCount() int
-	GetShortURL(URL string) (string, bool)
+	GetShortURL(URL string) (string, error)
 	Save(ShortURL string, URL string) error
 	LoadData() ([]DataStorageRow, error)
 	Ping() bool

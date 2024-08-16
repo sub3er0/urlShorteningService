@@ -3,6 +3,7 @@ package storage
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"os"
@@ -108,11 +109,11 @@ func (fs *FileStorage) GetURLCount() int {
 	return count
 }
 
-func (fs *FileStorage) GetShortURL(URL string) (string, bool) {
+func (fs *FileStorage) GetShortURL(URL string) (string, error) {
 	file, err := os.OpenFile(fs.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
 
 	if err != nil {
-		return "", false
+		return "", err
 	}
 
 	defer file.Close()
@@ -127,21 +128,22 @@ func (fs *FileStorage) GetShortURL(URL string) (string, bool) {
 		}
 
 		if err != nil {
-			return "", false
+			return "", err
 		}
 
 		err = json.Unmarshal(data, &dataStorageRow)
 
 		if err != nil {
-			return "", false
+			return "", err
 		}
 
 		if dataStorageRow.URL == URL {
-			return dataStorageRow.ShortURL, true
+			return dataStorageRow.ShortURL, nil
 		}
 	}
 
-	return "", false
+	err = errors.New("short url not found")
+	return "", err
 }
 
 func (fs *FileStorage) Save(ShortURL string, URL string) error {

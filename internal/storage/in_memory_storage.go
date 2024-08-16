@@ -1,5 +1,9 @@
 package storage
 
+import (
+	"errors"
+)
+
 // InMemoryStorage Пример реализации хранения в памяти
 type InMemoryStorage struct {
 	Urls map[string]string
@@ -30,14 +34,16 @@ func (ims *InMemoryStorage) GetURLCount() int {
 	return len(ims.Urls)
 }
 
-func (ims *InMemoryStorage) GetShortURL(URL string) (string, bool) {
+func (ims *InMemoryStorage) GetShortURL(URL string) (string, error) {
+	err := errors.New("short url not found")
+
 	for k, v := range ims.Urls {
 		if v == URL {
-			return k, true
+			return k, nil
 		}
 	}
 
-	return "", false
+	return "", err
 }
 
 func (ims *InMemoryStorage) Set(shortURL, longURL string) error {
