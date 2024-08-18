@@ -178,7 +178,7 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 
 		responseBody := BatchResponseBodyItem{
 			CorrelationID: requestBodyRow.CorrelationID,
-			ShortURL:      shortKey,
+			ShortURL:      us.BaseURL + shortKey,
 		}
 		responseBodyBatch = append(responseBodyBatch, responseBody)
 
