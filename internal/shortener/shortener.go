@@ -2,6 +2,7 @@ package shortener
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"io"
 	"log"
@@ -15,7 +16,6 @@ type URLShortener struct {
 	Storage       storage.URLStorage
 	ServerAddress string
 	BaseURL       string
-	DataStorage   storage.DataStorageInterface
 }
 
 type JSONResponseBody struct {
@@ -26,17 +26,27 @@ type RequestBody struct {
 	URL string `json:"url"`
 }
 
-// GetURL Реализация функции получения URL
-func (us *URLShortener) GetURL(shortURL string) (string, bool) {
-	return us.Storage.GetURL(shortURL)
+type BatchRequestBody struct {
+	CorrelationID string `json:"correlation_id"`
+	OriginalURL   string `json:"original_url"`
 }
 
-// SetURL Реализация функции сохранения URL
-func (us *URLShortener) SetURL(shortURL, longURL string) error {
-	return us.Storage.Set(shortURL, longURL)
+type BatchResponseBodyItem struct {
+	CorrelationID string `json:"correlation_id"`
+	ShortURL      string `json:"short_url"`
 }
 
-func (us *URLShortener) getShortURL(URL string) (string, bool) {
+type ExistValueError struct {
+	Text string
+}
+
+var ErrShortURLExists = &ExistValueError{Text: "ShortURL already exists"}
+
+func (e *ExistValueError) Error() string {
+	return e.Text
+}
+
+func (us *URLShortener) getShortURL(URL string) (string, error) {
 	return us.Storage.GetShortURL(URL)
 }
 
@@ -56,6 +66,22 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 		http.Error(w, "NotFound", http.StatusNotFound)
+	}
+}
+
+func (us *URLShortener) PingHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Only GET requests are allowed!", http.StatusBadRequest)
+		return
+	}
+
+	ok := us.Storage.Ping()
+
+	if ok {
+		w.WriteHeader(http.StatusOK)
+		return
+	} else {
+		http.Error(w, "Connection error", http.StatusInternalServerError)
 	}
 }
 
@@ -88,19 +114,96 @@ func (us *URLShortener) JSONPostHandler(w http.ResponseWriter, r *http.Request) 
 
 	shortKey, err := us.getShortKey(bodyURL.String())
 
+	var responseBody JSONResponseBody
+	responseBody.Result = shortKey
+
+	if errors.Is(err, ErrShortURLExists) {
+		err = us.buildJSONResponse(w, responseBody, true)
+	} else if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	} else {
+		err = us.buildJSONResponse(w, responseBody, false)
+	}
+
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+}
 
-	var responseBody JSONResponseBody
-	responseBody.Result = shortKey
+func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST requests are allowed!", http.StatusBadRequest)
+		return
+	}
 
-	err = us.buildJSONResponse(w, responseBody)
+	body, err := io.ReadAll(r.Body)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var requestBody []BatchRequestBody
+	err = json.Unmarshal(body, &requestBody)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var responseBodyBatch []BatchResponseBodyItem
+	var dataStorageRows []storage.DataStorageRow
+
+	for _, requestBodyRow := range requestBody {
+		shortKey, err := us.getShortURL(requestBodyRow.OriginalURL)
+
+		if err != nil {
+			shortKey = generateShortKey()
+		}
+
+		responseBody := BatchResponseBodyItem{
+			CorrelationID: requestBodyRow.CorrelationID,
+			ShortURL:      us.BaseURL + shortKey,
+		}
+
+		if errors.Is(err, ErrShortURLExists) {
+			responseBodyBatch = append(responseBodyBatch, responseBody)
+			continue
+		}
+
+		responseBodyBatch = append(responseBodyBatch, responseBody)
+
+		dataStorageRow := storage.DataStorageRow{
+			ShortURL: shortKey,
+			URL:      requestBodyRow.OriginalURL,
+		}
+		dataStorageRows = append(dataStorageRows, dataStorageRow)
+
+		if len(responseBodyBatch) == 1000 {
+			us.saveBatch(w, dataStorageRows)
+			dataStorageRows = dataStorageRows[:0]
+		}
+	}
+
+	if len(dataStorageRows) > 0 {
+		us.saveBatch(w, dataStorageRows)
+	}
+
+	err = us.buildJSONBatchResponse(w, responseBodyBatch)
 
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
+	}
+}
+
+func (us *URLShortener) saveBatch(w http.ResponseWriter, dataStorageRows []storage.DataStorageRow) {
+	err := us.Storage.SaveBatch(dataStorageRows)
+
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
@@ -127,12 +230,14 @@ func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
 	postURL := u.String()
 	shortKey, err := us.getShortKey(postURL)
 
-	if err != nil {
+	if errors.Is(err, ErrShortURLExists) {
+		us.buildResponse(w, shortKey, true)
+	} else if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusBadRequest)
 		return
+	} else {
+		us.buildResponse(w, shortKey, false)
 	}
-
-	us.buildResponse(w, shortKey)
 
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
@@ -145,25 +250,14 @@ func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (us *URLShortener) getShortKey(postURL string) (string, error) {
-	shortKey, ok := us.getShortURL(postURL)
+	shortKey, err := us.getShortURL(postURL)
 
-	if ok {
-		return shortKey, nil
+	if err == nil {
+		return shortKey, ErrShortURLExists
 	}
 
 	shortKey = generateShortKey()
-	err := us.SetURL(shortKey, postURL)
-
-	if err != nil {
-		return "", err
-	}
-
-	FileStorageRowStruct := storage.DataStorageRow{
-		ID:       us.Storage.GetURLCount(),
-		ShortURL: shortKey,
-		URL:      postURL,
-	}
-	err = us.DataStorage.Save(FileStorageRowStruct)
+	err = us.Storage.Save(shortKey, postURL)
 
 	if err != nil {
 		return "", err
@@ -185,9 +279,14 @@ func generateShortKey() string {
 	return string(shortKey)
 }
 
-func (us *URLShortener) buildResponse(w http.ResponseWriter, shortKey string) {
+func (us *URLShortener) buildResponse(w http.ResponseWriter, shortKey string, isExist bool) {
 	w.Header().Set("content-type", "text/plain")
-	w.WriteHeader(http.StatusCreated)
+
+	if !isExist {
+		w.WriteHeader(http.StatusCreated)
+	} else {
+		w.WriteHeader(http.StatusConflict)
+	}
 
 	if len(us.BaseURL) > 0 && us.BaseURL[len(us.BaseURL)-1] != '/' {
 		us.BaseURL = us.BaseURL + "/"
@@ -201,9 +300,13 @@ func (us *URLShortener) buildResponse(w http.ResponseWriter, shortKey string) {
 	}
 }
 
-func (us *URLShortener) buildJSONResponse(w http.ResponseWriter, response JSONResponseBody) error {
+func (us *URLShortener) buildJSONResponse(w http.ResponseWriter, response JSONResponseBody, isExist bool) error {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	if !isExist {
+		w.WriteHeader(http.StatusCreated)
+	} else {
+		w.WriteHeader(http.StatusConflict)
+	}
 
 	if len(us.BaseURL) > 0 && us.BaseURL[len(us.BaseURL)-1] != '/' {
 		us.BaseURL = us.BaseURL + "/"
@@ -227,19 +330,22 @@ func (us *URLShortener) buildJSONResponse(w http.ResponseWriter, response JSONRe
 	return nil
 }
 
-func (us *URLShortener) LoadData() error {
-	DataStorageRows, err := us.DataStorage.LoadData()
+func (us *URLShortener) buildJSONBatchResponse(w http.ResponseWriter, response []BatchResponseBodyItem) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	jsonData, err := json.Marshal(response)
 
 	if err != nil {
+		log.Printf("Serialization fail: %v", err)
 		return err
 	}
 
-	for _, dataStorageRow := range DataStorageRows {
-		err := us.Storage.Set(dataStorageRow.ShortURL, dataStorageRow.URL)
+	_, err = w.Write(jsonData)
 
-		if err != nil {
-			return err
-		}
+	if err != nil {
+		log.Printf("Write data error: %v", err)
+		return err
 	}
 
 	return nil

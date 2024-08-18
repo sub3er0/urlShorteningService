@@ -21,16 +21,23 @@ func main() {
 		log.Fatalf("Error while initializing config: %v", err)
 	}
 
+	var dataStorage storage.URLStorage
+
+	if cfg.DatabaseDsn != "" {
+		pgStorage := &storage.PgStorage{}
+		pgStorage.Init(cfg.DatabaseDsn)
+		defer pgStorage.Close()
+		dataStorage = pgStorage
+	} else if cfg.FileStoragePath != "" {
+		dataStorage = &storage.FileStorage{FileStoragePath: cfg.FileStoragePath}
+	} else {
+		dataStorage = &storage.InMemoryStorage{Urls: make(map[string]string)}
+	}
+
 	shortenerInstance = &shortener.URLShortener{
-		Storage:       &storage.InMemoryStorage{Urls: make(map[string]string)},
+		Storage:       dataStorage,
 		ServerAddress: cfg.ServerAddress,
 		BaseURL:       cfg.BaseURL,
-		DataStorage:   &storage.FileStorage{FileStoragePath: cfg.FileStoragePath},
-	}
-	err = shortenerInstance.LoadData()
-
-	if err != nil {
-		log.Printf("In memmory storage fail: %v", err)
 	}
 
 	zapLogger, err := zap.NewDevelopment()
@@ -46,7 +53,9 @@ func main() {
 	r.Use(gzip.RequestDecompressor)
 	r.Post("/", shortenerInstance.PostHandler)
 	r.Get("/{id}", shortenerInstance.GetHandler)
+	r.Get("/ping", shortenerInstance.PingHandler)
 	r.Post("/api/shorten", shortenerInstance.JSONPostHandler)
+	r.Post("/api/shorten/batch", shortenerInstance.JSONBatchHandler)
 	err = http.ListenAndServe(cfg.ServerAddress, r)
 
 	if err != nil {
