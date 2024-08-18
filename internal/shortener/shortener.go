@@ -2,6 +2,7 @@ package shortener
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"io"
 	"log"
@@ -15,7 +16,6 @@ type URLShortener struct {
 	Storage       storage.URLStorage
 	ServerAddress string
 	BaseURL       string
-	DataStorage   storage.DataStorageInterface
 }
 
 type JSONResponseBody struct {
@@ -26,14 +26,14 @@ type RequestBody struct {
 	URL string `json:"url"`
 }
 
-// GetURL Реализация функции получения URL
-func (us *URLShortener) GetURL(shortURL string) (string, bool) {
-	return us.Storage.GetURL(shortURL)
+type BatchRequestBody struct {
+	CorrelationID string `json:"correlation_id"`
+	OriginalURL   string `json:"original_url"`
 }
 
-// SetURL Реализация функции сохранения URL
-func (us *URLShortener) SetURL(shortURL, longURL string) error {
-	return us.Storage.Set(shortURL, longURL)
+type BatchResponseBodyItem struct {
+	CorrelationID string `json:"correlation_id"`
+	ShortURL      string `json:"short_url"`
 }
 
 func (us *URLShortener) getShortURL(URL string) (string, bool) {
@@ -56,6 +56,47 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 		http.Error(w, "NotFound", http.StatusNotFound)
+	}
+}
+
+func expand(originalURL string) (string, error) {
+	// Проверяем валидность URL
+	parsedURL, err := url.Parse(originalURL)
+	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+		return "", fmt.Errorf("невалидный URL: %s", originalURL)
+	}
+
+	// Создаем HTTP-клиент с отключением редиректов
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return fmt.Errorf("редиректы заблокированы")
+		},
+	}
+
+	response, err := client.Get(originalURL)
+	if err != nil {
+		return "", fmt.Errorf("ошибка при выполнении GET-запроса: %w", err)
+	}
+	defer response.Body.Close()
+
+	// Дополнительная обработка ответа...
+
+	return "result", nil
+}
+
+func (us *URLShortener) PingHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Only GET requests are allowed!", http.StatusBadRequest)
+		return
+	}
+
+	ok := us.Storage.Ping()
+
+	if ok {
+		w.WriteHeader(http.StatusOK)
+		return
+	} else {
+		http.Error(w, "Connection error", http.StatusInternalServerError)
 	}
 }
 
@@ -101,6 +142,75 @@ func (us *URLShortener) JSONPostHandler(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
+	}
+}
+
+func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST requests are allowed!", http.StatusBadRequest)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var requestBody []BatchRequestBody
+	err = json.Unmarshal(body, &requestBody)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var responseBodyBatch []BatchResponseBodyItem
+	var dataStorageRows []storage.DataStorageRow
+
+	for _, requestBodyRow := range requestBody {
+		shortKey, ok := us.getShortURL(requestBodyRow.OriginalURL)
+
+		if !ok {
+			shortKey = generateShortKey()
+		}
+
+		responseBody := BatchResponseBodyItem{
+			CorrelationID: requestBodyRow.CorrelationID,
+			ShortURL:      us.BaseURL + shortKey,
+		}
+		responseBodyBatch = append(responseBodyBatch, responseBody)
+
+		dataStorageRow := storage.DataStorageRow{
+			ShortURL: shortKey,
+			URL:      requestBodyRow.OriginalURL,
+		}
+		dataStorageRows = append(dataStorageRows, dataStorageRow)
+
+		if len(responseBodyBatch) == 1000 {
+			us.saveBatch(w, dataStorageRows)
+			dataStorageRows = dataStorageRows[:0]
+		}
+	}
+
+	if len(dataStorageRows) > 0 {
+		us.saveBatch(w, dataStorageRows)
+	}
+
+	err = us.buildJSONBatchResponse(w, responseBodyBatch)
+
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (us *URLShortener) saveBatch(w http.ResponseWriter, dataStorageRows []storage.DataStorageRow) {
+	err := us.Storage.SaveBatch(dataStorageRows)
+
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
 }
 
@@ -152,18 +262,7 @@ func (us *URLShortener) getShortKey(postURL string) (string, error) {
 	}
 
 	shortKey = generateShortKey()
-	err := us.SetURL(shortKey, postURL)
-
-	if err != nil {
-		return "", err
-	}
-
-	FileStorageRowStruct := storage.DataStorageRow{
-		ID:       us.Storage.GetURLCount(),
-		ShortURL: shortKey,
-		URL:      postURL,
-	}
-	err = us.DataStorage.Save(FileStorageRowStruct)
+	err := us.Storage.Save(shortKey, postURL)
 
 	if err != nil {
 		return "", err
@@ -227,19 +326,22 @@ func (us *URLShortener) buildJSONResponse(w http.ResponseWriter, response JSONRe
 	return nil
 }
 
-func (us *URLShortener) LoadData() error {
-	DataStorageRows, err := us.DataStorage.LoadData()
+func (us *URLShortener) buildJSONBatchResponse(w http.ResponseWriter, response []BatchResponseBodyItem) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	jsonData, err := json.Marshal(response)
 
 	if err != nil {
+		log.Printf("Serialization fail: %v", err)
 		return err
 	}
 
-	for _, dataStorageRow := range DataStorageRows {
-		err := us.Storage.Set(dataStorageRow.ShortURL, dataStorageRow.URL)
+	_, err = w.Write(jsonData)
 
-		if err != nil {
-			return err
-		}
+	if err != nil {
+		log.Printf("Write data error: %v", err)
+		return err
 	}
 
 	return nil
