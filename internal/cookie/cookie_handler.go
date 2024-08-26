@@ -74,7 +74,7 @@ func (cm *CookieManager) CookieHandler(h http.Handler) http.Handler {
 		var userID string
 
 		if err != nil {
-			if r.Method == "GET" {
+			if r.Method == "GET" && r.URL.Path == "/api/user/urls" {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
