@@ -377,7 +377,7 @@ func (us *URLShortener) buildJSONBatchResponse(w http.ResponseWriter, response [
 
 func (us *URLShortener) buildAllUserUrlsResponsew(w http.ResponseWriter, response []storage.UserUrlsResponseBodyItem) error {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 
 	for i := range response {
 		response[i].ShortURL = us.BaseURL + response[i].ShortURL

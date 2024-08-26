@@ -76,9 +76,16 @@ func (cm *CookieManager) CookieHandler(h http.Handler) http.Handler {
 		if err != nil {
 			createNewCookie = true
 		} else if !verifyCookie(cookie.Value) {
-			createNewCookie = true
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
 		} else {
 			userID, _ = getUserIDFromCookie(cookie.Value)
+
+			if userID == "" {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
 			isUserExist := cm.Storage.IsUserExist(userID)
 
 			if isUserExist {
