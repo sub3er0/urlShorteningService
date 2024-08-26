@@ -78,9 +78,15 @@ func (pgs *PgStorage) Init(connectionString string) error {
 	CREATE TABLE IF NOT EXISTS urls (
 		id SERIAL PRIMARY KEY,
 		url VARCHAR(100) UNIQUE,
-		short_url VARCHAR(100) UNIQUE
+		short_url VARCHAR(100) UNIQUE,
+	    user_id VARCHAR(100)
 	);
-	ALTER TABLE urls ADD UNIQUE (url, short_url);`
+	ALTER TABLE urls ADD UNIQUE (url, short_url);
+
+	CREATE TABLE IF NOT EXISTS users_cookie (
+		id SERIAL PRIMARY KEY,
+		user_id VARCHAR(100) UNIQUE
+	);`
 
 	_, err = pgs.conn.Exec(pgs.ctx, createTableSQL)
 	if err != nil {
@@ -98,9 +104,9 @@ func (pgs *PgStorage) Ping() bool {
 	return true
 }
 
-func (pgs *PgStorage) Save(ShortURL string, URL string) error {
-	query := fmt.Sprintf("INSERT INTO %s (short_url, url) VALUES ($1, $2)", tableName)
-	_, err := pgs.conn.Exec(pgs.ctx, query, ShortURL, URL)
+func (pgs *PgStorage) Save(ShortURL string, URL string, userID string) error {
+	query := fmt.Sprintf("INSERT INTO %s (short_url, url, user_id) VALUES ($1, $2, $3)", tableName)
+	_, err := pgs.conn.Exec(pgs.ctx, query, ShortURL, URL, userID)
 	return err
 }
 
@@ -116,8 +122,8 @@ func (pgs *PgStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
 	batch := &pgx.Batch{}
 	for _, dataStorageRow := range dataStorageRows {
 		batch.Queue(
-			"INSERT INTO urls (url, short_url) VALUES ($1, $2) ON CONFLICT (url, short_url) DO NOTHING",
-			dataStorageRow.URL, dataStorageRow.ShortURL)
+			"INSERT INTO urls (url, short_url, user_id) VALUES ($1, $2, $3) ON CONFLICT (url, short_url) DO NOTHING",
+			dataStorageRow.URL, dataStorageRow.ShortURL, dataStorageRow.UserID)
 	}
 
 	br := pgs.conn.SendBatch(context.Background(), batch)
@@ -131,4 +137,64 @@ func (pgs *PgStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
 	}
 
 	return nil
+}
+
+func (pgs *PgStorage) IsUserExist(uniqueId string) bool {
+	query := fmt.Sprintf("SELECT id FROM users_cookie WHERE user_id = $1")
+	rows, err := pgs.conn.Query(pgs.ctx, query, uniqueId)
+
+	if err != nil {
+		return false
+	}
+
+	var id int
+	var rowsCount int
+
+	for rows.Next() {
+		if err := rows.Scan(&id); err != nil {
+			return false
+		}
+
+		rowsCount++
+	}
+
+	if rowsCount > 0 {
+		return true
+	}
+
+	return false
+}
+
+func (pgs *PgStorage) SaveUser(uniqueId string) error {
+	query := "INSERT INTO users_cookie (user_id) VALUES ($1)"
+	_, err := pgs.conn.Exec(pgs.ctx, query, uniqueId)
+	return err
+}
+
+func (pgs *PgStorage) GetUserUrls(uniqueId string) ([]UserUrlsResponseBodyItem, error) {
+	query := fmt.Sprintf("SELECT url, short_url FROM %s WHERE user_id = $1", tableName)
+	rows, err := pgs.conn.Query(pgs.ctx, query, uniqueId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var responseUrls []UserUrlsResponseBodyItem
+
+	for rows.Next() {
+		var url string
+		var shortUrl string
+		var responseItem UserUrlsResponseBodyItem
+
+		if err := rows.Scan(&url, &shortUrl); err != nil {
+			return nil, err
+		}
+
+		responseItem.OriginalURL = url
+		responseItem.ShortURL = shortUrl
+
+		responseUrls = append(responseUrls, responseItem)
+	}
+
+	return responseUrls, nil
 }

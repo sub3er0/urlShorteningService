@@ -146,7 +146,7 @@ func (fs *FileStorage) GetShortURL(URL string) (string, error) {
 	return "", err
 }
 
-func (fs *FileStorage) Save(ShortURL string, URL string) error {
+func (fs *FileStorage) Save(ShortURL string, URL string, userID string) error {
 	row := DataStorageRow{
 		ID:       fs.GetURLCount(),
 		ShortURL: ShortURL,
@@ -212,4 +212,16 @@ func (fs *FileStorage) LoadData() ([]DataStorageRow, error) {
 
 func (fs *FileStorage) Ping() bool {
 	return true
+}
+
+func (fs *FileStorage) IsUserExist(data string) bool {
+	return false
+}
+
+func (fs *FileStorage) SaveUser(uniqueId string) error {
+	return nil
+}
+
+func (fs *FileStorage) GetUserUrls(uniqueId string) ([]UserUrlsResponseBodyItem, error) {
+	return nil, nil
 }

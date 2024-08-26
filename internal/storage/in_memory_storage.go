@@ -16,7 +16,7 @@ func (ims *InMemoryStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
 	return nil
 }
 
-func (ims *InMemoryStorage) Save(ShorURL string, URL string) error {
+func (ims *InMemoryStorage) Save(ShorURL string, URL string, userID string) error {
 	ims.Urls[ShorURL] = URL
 	return nil
 }
@@ -53,4 +53,16 @@ func (ims *InMemoryStorage) Set(shortURL, longURL string) error {
 
 func (ims *InMemoryStorage) Ping() bool {
 	return true
+}
+
+func (ims *InMemoryStorage) IsUserExist(data string) bool {
+	return false
+}
+
+func (ims *InMemoryStorage) SaveUser(uniqueId string) error {
+	return nil
+}
+
+func (fs *InMemoryStorage) GetUserUrls(uniqueId string) ([]UserUrlsResponseBodyItem, error) {
+	return nil, nil
 }

@@ -21,7 +21,7 @@ func InitConfig() (*Config, error) {
 	flag.StringVar(&cfg.FileStoragePath, "f", "", "Путь до файла")
 	flag.StringVar(
 		&cfg.DatabaseDsn,
-		"d", "",
+		"d", "postgres://postgres:326717@localhost:5432/shortener?sslmode=disable",
 		"Строка подключения к базе данных")
 	flag.Parse()
 

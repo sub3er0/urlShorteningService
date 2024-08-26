@@ -2,7 +2,8 @@ package shortener
 
 import (
 	"encoding/json"
-	"errors"
+	"github.com/pkg/errors"
+	"github.com/sub3er0/urlShorteningService/internal/cookie"
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"io"
 	"log"
@@ -16,6 +17,7 @@ type URLShortener struct {
 	Storage       storage.URLStorage
 	ServerAddress string
 	BaseURL       string
+	CookieManager *cookie.CookieManager
 }
 
 type JSONResponseBody struct {
@@ -178,12 +180,14 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 		dataStorageRow := storage.DataStorageRow{
 			ShortURL: shortKey,
 			URL:      requestBodyRow.OriginalURL,
+			UserID:   us.CookieManager.ActualCookieValue,
 		}
 		dataStorageRows = append(dataStorageRows, dataStorageRow)
 
 		if len(responseBodyBatch) == 1000 {
 			us.saveBatch(w, dataStorageRows)
 			dataStorageRows = dataStorageRows[:0]
+			us.Storage.Save(shortKey, requestBodyRow.OriginalURL, us.CookieManager.ActualCookieValue)
 		}
 	}
 
@@ -195,6 +199,26 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (us *URLShortener) GetUserUrls(w http.ResponseWriter, r *http.Request) {
+	urls, err := us.Storage.GetUserUrls(us.CookieManager.ActualCookieValue)
+
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	if len(urls) == 0 {
+		http.Error(w, "No Content", http.StatusNoContent)
+		return
+	}
+
+	err = us.buildAllUserUrlsResponsew(w, urls)
+
+	if err != nil {
 		return
 	}
 }
@@ -257,7 +281,7 @@ func (us *URLShortener) getShortKey(postURL string) (string, error) {
 	}
 
 	shortKey = generateShortKey()
-	err = us.Storage.Save(shortKey, postURL)
+	err = us.Storage.Save(shortKey, postURL, us.CookieManager.ActualCookieValue)
 
 	if err != nil {
 		return "", err
@@ -331,6 +355,27 @@ func (us *URLShortener) buildJSONResponse(w http.ResponseWriter, response JSONRe
 }
 
 func (us *URLShortener) buildJSONBatchResponse(w http.ResponseWriter, response []BatchResponseBodyItem) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+
+	jsonData, err := json.Marshal(response)
+
+	if err != nil {
+		log.Printf("Serialization fail: %v", err)
+		return err
+	}
+
+	_, err = w.Write(jsonData)
+
+	if err != nil {
+		log.Printf("Write data error: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func (us *URLShortener) buildAllUserUrlsResponsew(w http.ResponseWriter, response []storage.UserUrlsResponseBodyItem) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
