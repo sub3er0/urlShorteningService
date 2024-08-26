@@ -379,6 +379,10 @@ func (us *URLShortener) buildAllUserUrlsResponsew(w http.ResponseWriter, respons
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 
+	for i := range response {
+		response[i].ShortURL = us.BaseURL + response[i].ShortURL
+	}
+
 	jsonData, err := json.Marshal(response)
 
 	if err != nil {
