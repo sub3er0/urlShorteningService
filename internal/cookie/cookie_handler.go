@@ -2,10 +2,10 @@ package cookie
 
 import (
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"github.com/sub3er0/urlShorteningService/internal/storage"
-	"math/rand"
 	"net/http"
 	"strings"
 	"time"
