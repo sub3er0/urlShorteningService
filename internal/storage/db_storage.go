@@ -159,8 +159,6 @@ func (pgs *PgStorage) IsUserExist(uniqueID string) bool {
 	}
 
 	return rowsCount > 0
-
-	return false
 }
 
 func (pgs *PgStorage) SaveUser(uniqueID string) error {
@@ -181,15 +179,15 @@ func (pgs *PgStorage) GetUserUrls(uniqueID string) ([]UserUrlsResponseBodyItem, 
 
 	for rows.Next() {
 		var url string
-		var shortUrl string
+		var shortURL string
 		var responseItem UserUrlsResponseBodyItem
 
-		if err := rows.Scan(&url, &shortUrl); err != nil {
+		if err := rows.Scan(&url, &shortURL); err != nil {
 			return nil, err
 		}
 
 		responseItem.OriginalURL = url
-		responseItem.ShortURL = shortUrl
+		responseItem.ShortURL = shortURL
 
 		responseUrls = append(responseUrls, responseItem)
 	}
