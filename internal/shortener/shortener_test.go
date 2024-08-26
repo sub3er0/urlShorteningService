@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/sub3er0/urlShorteningService/internal/cookie"
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"net/http"
 	"net/http/httptest"
@@ -18,7 +19,7 @@ func TestJsonPostHandler_InvalidURL(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
 	var requestBody RequestBody
 	requestBody.URL = "invalid-url"
@@ -46,7 +47,7 @@ func TestURLShortener_JsonPostHandlerExistedUrl(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
 
 	var requestBody RequestBody
@@ -62,7 +63,7 @@ func TestURLShortener_JsonPostHandlerExistedUrl(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	us.JSONPostHandler(w, req)
-	assert.Equal(t, http.StatusCreated, w.Code, "Incorrect status code")
+	assert.Equal(t, http.StatusConflict, w.Code, "Incorrect status code")
 
 	body := w.Body.String()
 	assert.Contains(t, body, "\"result\":\"http://localhost:8080/shortURL\"", "Body must looks like \"result\":\"http://localhost\"")
@@ -73,7 +74,7 @@ func TestURLShortener_PostHandler(t *testing.T) {
 		Storage:       &storage.InMemoryStorage{Urls: make(map[string]string)},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
 
 	req, err := http.NewRequest(http.MethodPost, "http://localhost/", bytes.NewReader([]byte("https://www.example.com")))
@@ -120,7 +121,7 @@ func TestPostHandler_InvalidMethod(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
 
@@ -143,7 +144,7 @@ func TestPostHandler_InvalidURL(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
 	body := []byte("invalid-url")
 	req, err := http.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
@@ -164,7 +165,7 @@ func TestURLShortener_PostHandlerExistedUrl(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
 
 	req, err := http.NewRequest(http.MethodPost, "http://localhost/", bytes.NewReader([]byte("https://www.example.com")))
@@ -172,7 +173,7 @@ func TestURLShortener_PostHandlerExistedUrl(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	us.PostHandler(w, req)
-	assert.Equal(t, http.StatusCreated, w.Code, "Incorrect status code")
+	assert.Equal(t, http.StatusConflict, w.Code, "Incorrect status code")
 
 	body := w.Body.String()
 	assert.Contains(t, body, "http://localhost:8080/shortURL", "Body must looks like http://localhost:8080/shortURL")
@@ -185,11 +186,11 @@ func TestURLShortener_GetShortKeyExist(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
-	shortKey, ok := us.getShortURL("shortURL")
+	shortKey, err := us.getShortURL("https://www.example.com")
 
-	if ok {
+	if err != nil {
 		assert.Equal(t, "shortURL", shortKey, "Incorrect Short URL")
 	}
 }
@@ -207,7 +208,7 @@ func TestURLShortener_PostHandlerTable(t *testing.T) {
 				Storage:       &storage.InMemoryStorage{Urls: make(map[string]string)},
 				ServerAddress: "localhost:8080",
 				BaseURL:       "http://localhost:8080/",
-				DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
+				CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 			},
 			prepare: func(us *URLShortener) {
 				var requestBody RequestBody
@@ -237,7 +238,7 @@ func TestURLShortener_PostHandlerTable(t *testing.T) {
 				},
 				ServerAddress: "localhost:8080",
 				BaseURL:       "http://localhost:8080/",
-				DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
+				CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 			},
 			prepare: func(us *URLShortener) {
 				req, err := http.NewRequest(http.MethodGet, "/api/shorten", nil)
