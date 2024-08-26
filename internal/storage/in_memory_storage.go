@@ -59,10 +59,10 @@ func (ims *InMemoryStorage) IsUserExist(data string) bool {
 	return false
 }
 
-func (ims *InMemoryStorage) SaveUser(uniqueId string) error {
+func (ims *InMemoryStorage) SaveUser(uniqueID string) error {
 	return nil
 }
 
-func (fs *InMemoryStorage) GetUserUrls(uniqueId string) ([]UserUrlsResponseBodyItem, error) {
+func (ims *InMemoryStorage) GetUserUrls(uniqueID string) ([]UserUrlsResponseBodyItem, error) {
 	return nil, nil
 }

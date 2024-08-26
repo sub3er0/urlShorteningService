@@ -218,10 +218,10 @@ func (fs *FileStorage) IsUserExist(data string) bool {
 	return false
 }
 
-func (fs *FileStorage) SaveUser(uniqueId string) error {
+func (fs *FileStorage) SaveUser(uniqueID string) error {
 	return nil
 }
 
-func (fs *FileStorage) GetUserUrls(uniqueId string) ([]UserUrlsResponseBodyItem, error) {
+func (fs *FileStorage) GetUserUrls(uniqueID string) ([]UserUrlsResponseBodyItem, error) {
 	return nil, nil
 }

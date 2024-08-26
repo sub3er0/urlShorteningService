@@ -9,7 +9,7 @@ type URLStorage interface {
 	LoadData() ([]DataStorageRow, error)
 	Ping() bool
 	SaveBatch(dataStorageRows []DataStorageRow) error
-	IsUserExist(uniqueId string) bool
-	SaveUser(uniqueId string) error
-	GetUserUrls(uniqueId string) ([]UserUrlsResponseBodyItem, error)
+	IsUserExist(uniqueID string) bool
+	SaveUser(uniqueID string) error
+	GetUserUrls(uniqueID string) ([]UserUrlsResponseBodyItem, error)
 }

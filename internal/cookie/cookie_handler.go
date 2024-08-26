@@ -42,7 +42,7 @@ func verifyCookie(str string) bool {
 	return sigStr == expected
 }
 
-func getUserIdFromCookie(str string) (string, bool) {
+func getUserIDFromCookie(str string) (string, bool) {
 	parts := strings.Split(str, ".")
 	if len(parts) != 2 {
 		return "", false
@@ -78,7 +78,7 @@ func (cm *CookieManager) CookieHandler(h http.Handler) http.Handler {
 		} else if !verifyCookie(cookie.Value) {
 			createNewCookie = true
 		} else {
-			userID, _ = getUserIdFromCookie(cookie.Value)
+			userID, _ = getUserIDFromCookie(cookie.Value)
 			isUserExist := cm.Storage.IsUserExist(userID)
 
 			if isUserExist {

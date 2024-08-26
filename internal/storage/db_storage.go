@@ -139,9 +139,9 @@ func (pgs *PgStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
 	return nil
 }
 
-func (pgs *PgStorage) IsUserExist(uniqueId string) bool {
-	query := fmt.Sprintf("SELECT id FROM users_cookie WHERE user_id = $1")
-	rows, err := pgs.conn.Query(pgs.ctx, query, uniqueId)
+func (pgs *PgStorage) IsUserExist(uniqueID string) bool {
+	query := "SELECT id FROM users_cookie WHERE user_id = $1"
+	rows, err := pgs.conn.Query(pgs.ctx, query, uniqueID)
 
 	if err != nil {
 		return false
@@ -158,22 +158,20 @@ func (pgs *PgStorage) IsUserExist(uniqueId string) bool {
 		rowsCount++
 	}
 
-	if rowsCount > 0 {
-		return true
-	}
+	return rowsCount > 0
 
 	return false
 }
 
-func (pgs *PgStorage) SaveUser(uniqueId string) error {
+func (pgs *PgStorage) SaveUser(uniqueID string) error {
 	query := "INSERT INTO users_cookie (user_id) VALUES ($1)"
-	_, err := pgs.conn.Exec(pgs.ctx, query, uniqueId)
+	_, err := pgs.conn.Exec(pgs.ctx, query, uniqueID)
 	return err
 }
 
-func (pgs *PgStorage) GetUserUrls(uniqueId string) ([]UserUrlsResponseBodyItem, error) {
+func (pgs *PgStorage) GetUserUrls(uniqueID string) ([]UserUrlsResponseBodyItem, error) {
 	query := fmt.Sprintf("SELECT url, short_url FROM %s WHERE user_id = $1", tableName)
-	rows, err := pgs.conn.Query(pgs.ctx, query, uniqueId)
+	rows, err := pgs.conn.Query(pgs.ctx, query, uniqueID)
 
 	if err != nil {
 		return nil, err
