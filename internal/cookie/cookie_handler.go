@@ -74,6 +74,11 @@ func (cm *CookieManager) CookieHandler(h http.Handler) http.Handler {
 		var userID string
 
 		if err != nil {
+			if r.Method == "GET" {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
 			createNewCookie = true
 		} else if !verifyCookie(cookie.Value) {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
