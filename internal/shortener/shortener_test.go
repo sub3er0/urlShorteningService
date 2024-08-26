@@ -93,7 +93,6 @@ func TestGetHandler_ValidRequest(t *testing.T) {
 		Storage: &storage.InMemoryStorage{
 			Urls: map[string]string{"shortURL": "https://www.example.com"},
 		},
-		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
 	_, err := http.NewRequest(http.MethodGet, "/shortURL", nil)
 
