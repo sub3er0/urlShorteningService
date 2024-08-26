@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/sub3er0/urlShorteningService/internal/cookie"
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"net/http"
 	"net/http/httptest"
@@ -18,6 +19,7 @@ func TestJsonPostHandler_InvalidURL(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
 	var requestBody RequestBody
 	requestBody.URL = "invalid-url"
@@ -45,6 +47,7 @@ func TestURLShortener_JsonPostHandlerExistedUrl(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
 
 	var requestBody RequestBody
@@ -71,6 +74,7 @@ func TestURLShortener_PostHandler(t *testing.T) {
 		Storage:       &storage.InMemoryStorage{Urls: make(map[string]string)},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
 
 	req, err := http.NewRequest(http.MethodPost, "http://localhost/", bytes.NewReader([]byte("https://www.example.com")))
@@ -89,6 +93,7 @@ func TestGetHandler_ValidRequest(t *testing.T) {
 		Storage: &storage.InMemoryStorage{
 			Urls: map[string]string{"shortURL": "https://www.example.com"},
 		},
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
 	_, err := http.NewRequest(http.MethodGet, "/shortURL", nil)
 
@@ -117,6 +122,7 @@ func TestPostHandler_InvalidMethod(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
 
@@ -139,6 +145,7 @@ func TestPostHandler_InvalidURL(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
 	body := []byte("invalid-url")
 	req, err := http.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
@@ -159,6 +166,7 @@ func TestURLShortener_PostHandlerExistedUrl(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
 
 	req, err := http.NewRequest(http.MethodPost, "http://localhost/", bytes.NewReader([]byte("https://www.example.com")))
@@ -179,6 +187,7 @@ func TestURLShortener_GetShortKeyExist(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
 	shortKey, err := us.getShortURL("https://www.example.com")
 
@@ -200,6 +209,7 @@ func TestURLShortener_PostHandlerTable(t *testing.T) {
 				Storage:       &storage.InMemoryStorage{Urls: make(map[string]string)},
 				ServerAddress: "localhost:8080",
 				BaseURL:       "http://localhost:8080/",
+				CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 			},
 			prepare: func(us *URLShortener) {
 				var requestBody RequestBody
@@ -229,6 +239,7 @@ func TestURLShortener_PostHandlerTable(t *testing.T) {
 				},
 				ServerAddress: "localhost:8080",
 				BaseURL:       "http://localhost:8080/",
+				CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 			},
 			prepare: func(us *URLShortener) {
 				req, err := http.NewRequest(http.MethodGet, "/api/shorten", nil)
