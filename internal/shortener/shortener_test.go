@@ -104,7 +104,7 @@ func TestGetHandler_ValidRequest(t *testing.T) {
 	originalURL, ok := us.Storage.GetURL("shortURL")
 
 	if ok {
-		w.Header().Set("Location", originalURL)
+		w.Header().Set("Location", originalURL.URL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	}
 
