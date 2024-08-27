@@ -64,6 +64,7 @@ func main() {
 	r.Post("/api/shorten", shortenerInstance.JSONPostHandler)
 	r.Post("/api/shorten/batch", shortenerInstance.JSONBatchHandler)
 	r.Get("/api/user/urls", shortenerInstance.GetUserUrls)
+	r.Delete("/api/user/urls", shortenerInstance.DeleteUserUrls)
 	err = http.ListenAndServe(cfg.ServerAddress, r)
 
 	if err != nil {

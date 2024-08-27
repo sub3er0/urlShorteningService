@@ -2,7 +2,7 @@ package storage
 
 // URLStorage Интерфейс для хранения URL-адресов
 type URLStorage interface {
-	GetURL(shortURL string) (string, bool)
+	GetURL(shortURL string) (GetUrlRow, bool)
 	GetURLCount() int
 	GetShortURL(URL string) (string, error)
 	Save(ShortURL string, URL string, userID string) error
@@ -12,4 +12,5 @@ type URLStorage interface {
 	IsUserExist(uniqueID string) bool
 	SaveUser(uniqueID string) error
 	GetUserUrls(uniqueID string) ([]UserUrlsResponseBodyItem, error)
+	DeleteUserUrls(uniqueID string, shortURLS []string) error
 }

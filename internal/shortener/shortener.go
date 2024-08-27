@@ -10,6 +10,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"sync"
 )
 
 // URLShortener Структура URLShortener, использующая интерфейс хранения
@@ -26,6 +27,10 @@ type JSONResponseBody struct {
 
 type RequestBody struct {
 	URL string `json:"url"`
+}
+
+type DeleteRequestBody struct {
+	ShortURL string `json:"short_url"`
 }
 
 type BatchRequestBody struct {
@@ -62,12 +67,13 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 
 	storedURL, ok := us.Storage.GetURL(id)
 
-	if ok {
-		w.Header().Set("Location", storedURL)
-		w.WriteHeader(http.StatusTemporaryRedirect)
-		return
-	} else {
+	if !ok {
 		http.Error(w, "NotFound", http.StatusNotFound)
+	} else if !storedURL.IsDeleted {
+		w.Header().Set("Location", storedURL.URL)
+		w.WriteHeader(http.StatusTemporaryRedirect)
+	} else if storedURL.IsDeleted {
+		w.WriteHeader(http.StatusGone)
 	}
 }
 
@@ -398,4 +404,59 @@ func (us *URLShortener) buildAllUserUrlsResponsew(w http.ResponseWriter, respons
 	}
 
 	return nil
+}
+
+func (us *URLShortener) DeleteUserUrls(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Only DELETE requests are allowed!", http.StatusBadRequest)
+		return
+	}
+
+	var shortURLs []string
+	err := json.NewDecoder(r.Body).Decode(&shortURLs)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	var wg sync.WaitGroup
+	errChan := make(chan error, len(shortURLs))
+
+	batchSize := 100
+	for i := 0; i < len(shortURLs); i += batchSize {
+		end := i + batchSize
+		if end > len(shortURLs) {
+			end = len(shortURLs)
+		}
+
+		urlsBatch := shortURLs[i:end]
+		wg.Add(1)
+
+		go func(batch []string) {
+			defer wg.Done()
+
+			err := us.Storage.DeleteUserUrls(us.CookieManager.ActualCookieValue, batch)
+			if err != nil {
+				errChan <- err
+			}
+		}(urlsBatch)
+	}
+
+	go func() {
+		wg.Wait()
+		close(errChan)
+	}()
+
+	var deleteErrors []error
+	for err := range errChan {
+		deleteErrors = append(deleteErrors, err)
+	}
+
+	if len(deleteErrors) > 0 {
+		http.Error(w, "Failed to delete some URLs", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusAccepted)
 }

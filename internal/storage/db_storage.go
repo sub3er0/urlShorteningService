@@ -16,23 +16,30 @@ type PgStorage struct {
 	ctx  context.Context
 }
 
-func (pgs *PgStorage) GetURL(shortURL string) (string, bool) {
-	query := fmt.Sprintf("SELECT url FROM %s WHERE short_url = $1", tableName)
+func (pgs *PgStorage) GetURL(shortURL string) (GetUrlRow, bool) {
+	var getUrlRow GetUrlRow
+	query := fmt.Sprintf("SELECT url, is_deleted FROM %s WHERE short_url = $1", tableName)
 	rows, err := pgs.conn.Query(pgs.ctx, query, shortURL)
 
 	if err != nil {
-		return "", false
+		return getUrlRow, false
 	}
 
-	url := ""
+	rowsCount := 0
 
 	for rows.Next() {
-		if err := rows.Scan(&url); err != nil {
-			return url, false
+		if err := rows.Scan(&getUrlRow.URL, &getUrlRow.IsDeleted); err != nil {
+			return getUrlRow, false
 		}
+
+		rowsCount++
 	}
 
-	return url, true
+	if rowsCount == 0 {
+		return getUrlRow, false
+	}
+
+	return getUrlRow, true
 }
 
 func (pgs *PgStorage) GetURLCount() int {
@@ -79,7 +86,8 @@ func (pgs *PgStorage) Init(connectionString string) error {
 		id SERIAL PRIMARY KEY,
 		url VARCHAR(100) UNIQUE,
 		short_url VARCHAR(100) UNIQUE,
-	    user_id VARCHAR(100)
+	    user_id VARCHAR(100),
+	    is_deleted BOOLEAN DEFAULT FALSE
 	);
 	ALTER TABLE urls ADD UNIQUE (url, short_url);
 
@@ -193,4 +201,24 @@ func (pgs *PgStorage) GetUserUrls(uniqueID string) ([]UserUrlsResponseBodyItem, 
 	}
 
 	return responseUrls, nil
+}
+
+func (pgs *PgStorage) DeleteUserUrls(uniqueID string, shortURLS []string) error {
+	batch := &pgx.Batch{}
+	for _, shortURL := range shortURLS {
+		batch.Queue(
+			"UPDATE urls SET is_deleted = true WHERE short_url = $1 AND user_id = $2", shortURL, uniqueID)
+	}
+
+	br := pgs.conn.SendBatch(context.Background(), batch)
+	defer br.Close()
+
+	for i := 0; i < len(shortURLS); i++ {
+		_, err := br.Exec()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

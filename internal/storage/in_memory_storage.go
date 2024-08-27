@@ -25,9 +25,12 @@ func (ims *InMemoryStorage) LoadData() ([]DataStorageRow, error) {
 	return make([]DataStorageRow, 0), nil
 }
 
-func (ims *InMemoryStorage) GetURL(shortURL string) (string, bool) {
-	longURL, ok := ims.Urls[shortURL]
-	return longURL, ok
+func (ims *InMemoryStorage) GetURL(shortURL string) (GetUrlRow, bool) {
+	var getUrlRow GetUrlRow
+	var ok bool
+	getUrlRow.URL, ok = ims.Urls[shortURL]
+
+	return getUrlRow, ok
 }
 
 func (ims *InMemoryStorage) GetURLCount() int {
@@ -65,4 +68,8 @@ func (ims *InMemoryStorage) SaveUser(uniqueID string) error {
 
 func (ims *InMemoryStorage) GetUserUrls(uniqueID string) ([]UserUrlsResponseBodyItem, error) {
 	return nil, nil
+}
+
+func (ims *InMemoryStorage) DeleteUserUrls(uniqueID string, shortURLS []string) error {
+	return nil
 }

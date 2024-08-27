@@ -49,11 +49,12 @@ func (fs *FileStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
 	return nil
 }
 
-func (fs *FileStorage) GetURL(shortURL string) (string, bool) {
+func (fs *FileStorage) GetURL(shortURL string) (GetUrlRow, bool) {
 	file, err := os.OpenFile(fs.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
+	var getUrlRow GetUrlRow
 
 	if err != nil {
-		return "", false
+		return getUrlRow, false
 	}
 
 	defer file.Close()
@@ -68,21 +69,22 @@ func (fs *FileStorage) GetURL(shortURL string) (string, bool) {
 		}
 
 		if err != nil {
-			return "", false
+			return getUrlRow, false
 		}
 
 		err = json.Unmarshal(data, &dataStorageRow)
 
 		if err != nil {
-			return "", false
+			return getUrlRow, false
 		}
 
+		getUrlRow.URL = dataStorageRow.URL
 		if dataStorageRow.ShortURL == shortURL {
-			return dataStorageRow.URL, true
+			return getUrlRow, true
 		}
 	}
 
-	return "", false
+	return getUrlRow, false
 }
 
 func (fs *FileStorage) GetURLCount() int {
@@ -224,4 +226,8 @@ func (fs *FileStorage) SaveUser(uniqueID string) error {
 
 func (fs *FileStorage) GetUserUrls(uniqueID string) ([]UserUrlsResponseBodyItem, error) {
 	return nil, nil
+}
+
+func (fs *FileStorage) DeleteUserUrls(uniqueID string, shortURLS []string) error {
+	return nil
 }
