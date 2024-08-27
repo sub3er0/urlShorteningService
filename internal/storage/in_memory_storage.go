@@ -26,11 +26,11 @@ func (ims *InMemoryStorage) LoadData() ([]DataStorageRow, error) {
 }
 
 func (ims *InMemoryStorage) GetURL(shortURL string) (GetURLRow, bool) {
-	var getUrlRow GetURLRow
+	var getURLRow GetURLRow
 	var ok bool
-	getUrlRow.URL, ok = ims.Urls[shortURL]
+	getURLRow.URL, ok = ims.Urls[shortURL]
 
-	return getUrlRow, ok
+	return getURLRow, ok
 }
 
 func (ims *InMemoryStorage) GetURLCount() int {

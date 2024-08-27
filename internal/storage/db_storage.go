@@ -17,29 +17,29 @@ type PgStorage struct {
 }
 
 func (pgs *PgStorage) GetURL(shortURL string) (GetURLRow, bool) {
-	var getUrlRow GetURLRow
+	var getURLRow GetURLRow
 	query := fmt.Sprintf("SELECT url, is_deleted FROM %s WHERE short_url = $1", tableName)
 	rows, err := pgs.conn.Query(pgs.ctx, query, shortURL)
 
 	if err != nil {
-		return getUrlRow, false
+		return getURLRow, false
 	}
 
 	rowsCount := 0
 
 	for rows.Next() {
-		if err := rows.Scan(&getUrlRow.URL, &getUrlRow.IsDeleted); err != nil {
-			return getUrlRow, false
+		if err := rows.Scan(&getURLRow.URL, &getURLRow.IsDeleted); err != nil {
+			return getURLRow, false
 		}
 
 		rowsCount++
 	}
 
 	if rowsCount == 0 {
-		return getUrlRow, false
+		return getURLRow, false
 	}
 
-	return getUrlRow, true
+	return getURLRow, true
 }
 
 func (pgs *PgStorage) GetURLCount() int {
