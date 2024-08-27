@@ -25,8 +25,8 @@ func (ims *InMemoryStorage) LoadData() ([]DataStorageRow, error) {
 	return make([]DataStorageRow, 0), nil
 }
 
-func (ims *InMemoryStorage) GetURL(shortURL string) (GetUrlRow, bool) {
-	var getUrlRow GetUrlRow
+func (ims *InMemoryStorage) GetURL(shortURL string) (GetURLRow, bool) {
+	var getUrlRow GetURLRow
 	var ok bool
 	getUrlRow.URL, ok = ims.Urls[shortURL]
 

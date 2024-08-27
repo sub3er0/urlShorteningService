@@ -49,9 +49,9 @@ func (fs *FileStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
 	return nil
 }
 
-func (fs *FileStorage) GetURL(shortURL string) (GetUrlRow, bool) {
+func (fs *FileStorage) GetURL(shortURL string) (GetURLRow, bool) {
 	file, err := os.OpenFile(fs.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
-	var getUrlRow GetUrlRow
+	var getUrlRow GetURLRow
 
 	if err != nil {
 		return getUrlRow, false

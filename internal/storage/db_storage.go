@@ -16,8 +16,8 @@ type PgStorage struct {
 	ctx  context.Context
 }
 
-func (pgs *PgStorage) GetURL(shortURL string) (GetUrlRow, bool) {
-	var getUrlRow GetUrlRow
+func (pgs *PgStorage) GetURL(shortURL string) (GetURLRow, bool) {
+	var getUrlRow GetURLRow
 	query := fmt.Sprintf("SELECT url, is_deleted FROM %s WHERE short_url = $1", tableName)
 	rows, err := pgs.conn.Query(pgs.ctx, query, shortURL)
 

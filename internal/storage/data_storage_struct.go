@@ -13,7 +13,7 @@ type UserUrlsResponseBodyItem struct {
 	ShortURL    string `json:"short_url"`
 }
 
-type GetUrlRow struct {
+type GetURLRow struct {
 	URL       string
 	IsDeleted bool
 }
