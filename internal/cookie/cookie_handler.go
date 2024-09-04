@@ -51,16 +51,6 @@ func getUserIDFromCookie(str string) (string, bool) {
 	return parts[0], true
 }
 
-func splitCookieData(data string) []string {
-	//decodedData, err := base64.RawURLEncoding.DecodeString(data)
-	//
-	//if err != nil {
-	//	return nil
-	//}
-
-	return strings.Split(string(data), ".")
-}
-
 func generateUserID() string {
 	b := make([]byte, 16)
 	rand.Read(b)
@@ -73,28 +63,10 @@ func (cm *CookieManager) CookieHandler(h http.Handler) http.Handler {
 		createNewCookie := false
 		var userID string
 
-		if err != nil {
-			if r.Method == "GET" && r.URL.Path == "/api/user/urls" {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
-
-			createNewCookie = true
-		} else if !verifyCookie(cookie.Value) {
-			if r.Method == "GET" && r.URL.Path == "/api/user/urls" {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
-
+		if err != nil || !verifyCookie(cookie.Value) {
 			createNewCookie = true
 		} else {
 			userID, _ = getUserIDFromCookie(cookie.Value)
-
-			if userID == "" && r.Method == "GET" && r.URL.Path == "/api/user/urls" {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
-
 			isUserExist := cm.Storage.IsUserExist(userID)
 
 			if isUserExist {

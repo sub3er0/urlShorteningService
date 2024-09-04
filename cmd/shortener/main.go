@@ -57,14 +57,18 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger)
 	r.Use(gzip.RequestDecompressor)
-	r.Use(cookieManager.CookieHandler)
-	r.Post("/", shortenerInstance.PostHandler)
-	r.Get("/{id}", shortenerInstance.GetHandler)
+	r.With(cookieManager.CookieHandler).Route("/", func(r chi.Router) {
+		r.Post("/", shortenerInstance.PostHandler)
+		r.Get("/{id}", shortenerInstance.GetHandler)
+		r.Post("/api/shorten", shortenerInstance.JSONPostHandler)
+		r.Post("/api/shorten/batch", shortenerInstance.JSONBatchHandler)
+
+		r.With(cookieManager.AuthMiddleware).Get("/api/user/urls", shortenerInstance.GetUserUrls)
+		r.With(cookieManager.AuthMiddleware).Delete("/api/user/urls", shortenerInstance.DeleteUserUrls)
+	})
+
 	r.Get("/ping", shortenerInstance.PingHandler)
-	r.Post("/api/shorten", shortenerInstance.JSONPostHandler)
-	r.Post("/api/shorten/batch", shortenerInstance.JSONBatchHandler)
-	r.Get("/api/user/urls", shortenerInstance.GetUserUrls)
-	r.Delete("/api/user/urls", shortenerInstance.DeleteUserUrls)
+
 	err = http.ListenAndServe(cfg.ServerAddress, r)
 
 	if err != nil {

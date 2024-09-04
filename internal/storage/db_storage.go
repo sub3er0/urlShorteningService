@@ -176,7 +176,7 @@ func (pgs *PgStorage) SaveUser(uniqueID string) error {
 }
 
 func (pgs *PgStorage) GetUserUrls(uniqueID string) ([]UserUrlsResponseBodyItem, error) {
-	query := fmt.Sprintf("SELECT url, short_url FROM %s WHERE user_id = $1", tableName)
+	query := fmt.Sprintf("SELECT url, short_url FROM %s WHERE user_id = $1 AND is_deleted = false", tableName)
 	rows, err := pgs.conn.Query(pgs.ctx, query, uniqueID)
 
 	if err != nil {

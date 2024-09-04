@@ -58,11 +58,6 @@ func (us *URLShortener) getShortURL(URL string) (string, error) {
 }
 
 func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Only GET requests are allowed!", http.StatusBadRequest)
-		return
-	}
-
 	id := r.PathValue("id")
 
 	storedURL, ok := us.Storage.GetURL(id)
@@ -78,11 +73,6 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (us *URLShortener) PingHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Only GET requests are allowed!", http.StatusBadRequest)
-		return
-	}
-
 	ok := us.Storage.Ping()
 
 	if ok {
@@ -94,11 +84,6 @@ func (us *URLShortener) PingHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (us *URLShortener) JSONPostHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST requests are allowed!", http.StatusBadRequest)
-		return
-	}
-
 	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
@@ -141,11 +126,6 @@ func (us *URLShortener) JSONPostHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST requests are allowed!", http.StatusBadRequest)
-		return
-	}
-
 	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
@@ -238,11 +218,6 @@ func (us *URLShortener) saveBatch(w http.ResponseWriter, dataStorageRows []stora
 }
 
 func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST requests are allowed!", http.StatusBadRequest)
-		return
-	}
-
 	body, err := io.ReadAll(r.Body)
 
 	if err != nil {
@@ -407,11 +382,6 @@ func (us *URLShortener) buildAllUserUrlsResponsew(w http.ResponseWriter, respons
 }
 
 func (us *URLShortener) DeleteUserUrls(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodDelete {
-		http.Error(w, "Only DELETE requests are allowed!", http.StatusBadRequest)
-		return
-	}
-
 	var shortURLs []string
 	err := json.NewDecoder(r.Body).Decode(&shortURLs)
 

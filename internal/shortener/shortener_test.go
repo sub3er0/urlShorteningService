@@ -3,6 +3,7 @@ package shortener
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/sub3er0/urlShorteningService/internal/cookie"
@@ -115,6 +116,8 @@ func TestGetHandler_ValidRequest(t *testing.T) {
 }
 
 func TestPostHandler_InvalidMethod(t *testing.T) {
+	router := chi.NewRouter()
+
 	us := &URLShortener{
 		Storage: &storage.InMemoryStorage{
 			Urls: map[string]string{"shortURL": "https://www.example.com"},
@@ -123,18 +126,17 @@ func TestPostHandler_InvalidMethod(t *testing.T) {
 		BaseURL:       "http://localhost:8080/",
 		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
-	req, err := http.NewRequest(http.MethodGet, "/", nil)
 
+	router.Post("/", us.PostHandler)
+
+	req, err := http.NewRequest(http.MethodGet, "/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	w := httptest.NewRecorder()
-	us.PostHandler(w, req)
-	assert.Equal(t, http.StatusBadRequest, w.Code, "Invalid status code")
-
-	body := w.Body.String()
-	assert.Equal(t, "Only POST requests are allowed!\n", body, "Invalid response message")
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusMethodNotAllowed, w.Code, "Invalid status code")
 }
 
 func TestPostHandler_InvalidURL(t *testing.T) {
@@ -241,18 +243,17 @@ func TestURLShortener_PostHandlerTable(t *testing.T) {
 				CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 			},
 			prepare: func(us *URLShortener) {
-				req, err := http.NewRequest(http.MethodGet, "/api/shorten", nil)
+				router := chi.NewRouter()
+				router.Post("/api/shorten", us.JSONPostHandler)
 
+				req, err := http.NewRequest(http.MethodGet, "/api/shorten", nil)
 				if err != nil {
 					t.Fatal(err)
 				}
 
 				w := httptest.NewRecorder()
-				us.JSONPostHandler(w, req)
-				assert.Equal(t, http.StatusBadRequest, w.Code, "Invalid status code")
-
-				body := w.Body.String()
-				assert.Equal(t, "Only POST requests are allowed!\n", body, "Invalid response message")
+				router.ServeHTTP(w, req)
+				assert.Equal(t, http.StatusMethodNotAllowed, w.Code, "Invalid status code")
 			},
 		},
 	}
