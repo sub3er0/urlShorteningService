@@ -19,6 +19,8 @@ type URLShortener struct {
 	ServerAddress string
 	BaseURL       string
 	CookieManager *cookie.CookieManager
+	RemoveChan    chan string
+	wg            sync.WaitGroup
 }
 
 type JSONResponseBody struct {
@@ -48,6 +50,30 @@ type ExistValueError struct {
 }
 
 var ErrShortURLExists = &ExistValueError{Text: "ShortURL already exists"}
+
+func (us *URLShortener) Worker() {
+	batchSize := 1
+	shortURLs := make([]string, 0, batchSize)
+
+	for urlFromChan := range us.RemoveChan {
+		log.Printf("asdfasdf")
+		shortURLs = append(shortURLs, urlFromChan)
+
+		if len(shortURLs) >= batchSize {
+			err := us.Storage.DeleteUserUrls(us.CookieManager.ActualCookieValue, shortURLs)
+			if err != nil {
+				log.Printf("Error while deleting urls")
+			}
+			shortURLs = shortURLs[:0]
+		}
+	}
+
+	if len(shortURLs) > 0 {
+		if err := us.Storage.DeleteUserUrls(us.CookieManager.ActualCookieValue, shortURLs); err != nil {
+			log.Printf("Error while deleting remaining URLs: %v", err)
+		}
+	}
+}
 
 func (e *ExistValueError) Error() string {
 	return e.Text
@@ -381,6 +407,23 @@ func (us *URLShortener) buildAllUserUrlsResponsew(w http.ResponseWriter, respons
 	return nil
 }
 
+func (us *URLShortener) DeleteUserUrlsBatch(shortURLs []string) {
+	batchSize := 100
+
+	for i := 0; i < len(shortURLs); i += batchSize {
+		end := i + batchSize
+		if end > len(shortURLs) {
+			end = len(shortURLs)
+		}
+
+		urlsBatch := shortURLs[i:end]
+		err := us.Storage.DeleteUserUrls(us.CookieManager.ActualCookieValue, urlsBatch)
+		if err != nil {
+			log.Printf("Error while deleting urls")
+		}
+	}
+}
+
 func (us *URLShortener) DeleteUserUrls(w http.ResponseWriter, r *http.Request) {
 	var shortURLs []string
 	err := json.NewDecoder(r.Body).Decode(&shortURLs)
@@ -390,42 +433,8 @@ func (us *URLShortener) DeleteUserUrls(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var wg sync.WaitGroup
-	errChan := make(chan error, len(shortURLs))
-
-	batchSize := 100
-	for i := 0; i < len(shortURLs); i += batchSize {
-		end := i + batchSize
-		if end > len(shortURLs) {
-			end = len(shortURLs)
-		}
-
-		urlsBatch := shortURLs[i:end]
-		wg.Add(1)
-
-		go func(batch []string) {
-			defer wg.Done()
-
-			err := us.Storage.DeleteUserUrls(us.CookieManager.ActualCookieValue, batch)
-			if err != nil {
-				errChan <- err
-			}
-		}(urlsBatch)
-	}
-
-	go func() {
-		wg.Wait()
-		close(errChan)
-	}()
-
-	var deleteErrors []error
-	for err := range errChan {
-		deleteErrors = append(deleteErrors, err)
-	}
-
-	if len(deleteErrors) > 0 {
-		http.Error(w, "Failed to delete some URLs", http.StatusInternalServerError)
-		return
+	for _, shortURL := range shortURLs {
+		us.RemoveChan <- shortURL
 	}
 
 	w.WriteHeader(http.StatusAccepted)

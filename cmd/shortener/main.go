@@ -44,7 +44,10 @@ func main() {
 		ServerAddress: cfg.ServerAddress,
 		BaseURL:       cfg.BaseURL,
 		CookieManager: &cookieManager,
+		RemoveChan:    make(chan string),
 	}
+
+	go shortenerInstance.Worker()
 
 	zapLogger, err := zap.NewDevelopment()
 
