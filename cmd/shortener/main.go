@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/sub3er0/urlShorteningService/internal/config"
+	"github.com/sub3er0/urlShorteningService/internal/cookie"
 	"github.com/sub3er0/urlShorteningService/internal/gzip"
 	"github.com/sub3er0/urlShorteningService/internal/logger"
 	"github.com/sub3er0/urlShorteningService/internal/shortener"
@@ -21,17 +22,32 @@ func main() {
 		log.Fatalf("Error while initializing config: %v", err)
 	}
 
+	var dataStorage storage.URLStorage
+
+	if cfg.DatabaseDsn != "" {
+		pgStorage := &storage.PgStorage{}
+		pgStorage.Init(cfg.DatabaseDsn)
+		defer pgStorage.Close()
+		dataStorage = pgStorage
+	} else if cfg.FileStoragePath != "" {
+		dataStorage = &storage.FileStorage{FileStoragePath: cfg.FileStoragePath}
+	} else {
+		dataStorage = &storage.InMemoryStorage{Urls: make(map[string]string)}
+	}
+
+	cookieManager := cookie.CookieManager{
+		Storage: dataStorage,
+	}
+
 	shortenerInstance = &shortener.URLShortener{
-		Storage:       &storage.InMemoryStorage{Urls: make(map[string]string)},
+		Storage:       dataStorage,
 		ServerAddress: cfg.ServerAddress,
 		BaseURL:       cfg.BaseURL,
-		DataStorage:   &storage.FileStorage{FileStoragePath: cfg.FileStoragePath},
+		CookieManager: &cookieManager,
+		RemoveChan:    make(chan string),
 	}
-	err = shortenerInstance.LoadData()
 
-	if err != nil {
-		log.Printf("In memmory storage fail: %v", err)
-	}
+	go shortenerInstance.Worker()
 
 	zapLogger, err := zap.NewDevelopment()
 
@@ -44,9 +60,18 @@ func main() {
 	r := chi.NewRouter()
 	r.Use(logger.RequestLogger)
 	r.Use(gzip.RequestDecompressor)
-	r.Post("/", shortenerInstance.PostHandler)
-	r.Get("/{id}", shortenerInstance.GetHandler)
-	r.Post("/api/shorten", shortenerInstance.JSONPostHandler)
+	r.With(cookieManager.CookieHandler).Route("/", func(r chi.Router) {
+		r.Post("/", shortenerInstance.PostHandler)
+		r.Get("/{id}", shortenerInstance.GetHandler)
+		r.Post("/api/shorten", shortenerInstance.JSONPostHandler)
+		r.Post("/api/shorten/batch", shortenerInstance.JSONBatchHandler)
+
+		r.With(cookieManager.AuthMiddleware).Get("/api/user/urls", shortenerInstance.GetUserUrls)
+		r.With(cookieManager.AuthMiddleware).Delete("/api/user/urls", shortenerInstance.DeleteUserUrls)
+	})
+
+	r.Get("/ping", shortenerInstance.PingHandler)
+
 	err = http.ListenAndServe(cfg.ServerAddress, r)
 
 	if err != nil {
