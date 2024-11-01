@@ -3,8 +3,10 @@ package shortener
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/sub3er0/urlShorteningService/internal/cookie"
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"net/http"
 	"net/http/httptest"
@@ -18,7 +20,7 @@ func TestJsonPostHandler_InvalidURL(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
 	var requestBody RequestBody
 	requestBody.URL = "invalid-url"
@@ -46,7 +48,7 @@ func TestURLShortener_JsonPostHandlerExistedUrl(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
 
 	var requestBody RequestBody
@@ -62,7 +64,7 @@ func TestURLShortener_JsonPostHandlerExistedUrl(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	us.JSONPostHandler(w, req)
-	assert.Equal(t, http.StatusCreated, w.Code, "Incorrect status code")
+	assert.Equal(t, http.StatusConflict, w.Code, "Incorrect status code")
 
 	body := w.Body.String()
 	assert.Contains(t, body, "\"result\":\"http://localhost:8080/shortURL\"", "Body must looks like \"result\":\"http://localhost\"")
@@ -73,7 +75,7 @@ func TestURLShortener_PostHandler(t *testing.T) {
 		Storage:       &storage.InMemoryStorage{Urls: make(map[string]string)},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
 
 	req, err := http.NewRequest(http.MethodPost, "http://localhost/", bytes.NewReader([]byte("https://www.example.com")))
@@ -103,7 +105,7 @@ func TestGetHandler_ValidRequest(t *testing.T) {
 	originalURL, ok := us.Storage.GetURL("shortURL")
 
 	if ok {
-		w.Header().Set("Location", originalURL)
+		w.Header().Set("Location", originalURL.URL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
 	}
 
@@ -114,26 +116,27 @@ func TestGetHandler_ValidRequest(t *testing.T) {
 }
 
 func TestPostHandler_InvalidMethod(t *testing.T) {
+	router := chi.NewRouter()
+
 	us := &URLShortener{
 		Storage: &storage.InMemoryStorage{
 			Urls: map[string]string{"shortURL": "https://www.example.com"},
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
-	req, err := http.NewRequest(http.MethodGet, "/", nil)
 
+	router.Post("/", us.PostHandler)
+
+	req, err := http.NewRequest(http.MethodGet, "/", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	w := httptest.NewRecorder()
-	us.PostHandler(w, req)
-	assert.Equal(t, http.StatusBadRequest, w.Code, "Invalid status code")
-
-	body := w.Body.String()
-	assert.Equal(t, "Only POST requests are allowed!\n", body, "Invalid response message")
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusMethodNotAllowed, w.Code, "Invalid status code")
 }
 
 func TestPostHandler_InvalidURL(t *testing.T) {
@@ -143,7 +146,7 @@ func TestPostHandler_InvalidURL(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
 	body := []byte("invalid-url")
 	req, err := http.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
@@ -164,7 +167,7 @@ func TestURLShortener_PostHandlerExistedUrl(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
 
 	req, err := http.NewRequest(http.MethodPost, "http://localhost/", bytes.NewReader([]byte("https://www.example.com")))
@@ -172,7 +175,7 @@ func TestURLShortener_PostHandlerExistedUrl(t *testing.T) {
 
 	w := httptest.NewRecorder()
 	us.PostHandler(w, req)
-	assert.Equal(t, http.StatusCreated, w.Code, "Incorrect status code")
+	assert.Equal(t, http.StatusConflict, w.Code, "Incorrect status code")
 
 	body := w.Body.String()
 	assert.Contains(t, body, "http://localhost:8080/shortURL", "Body must looks like http://localhost:8080/shortURL")
@@ -185,11 +188,11 @@ func TestURLShortener_GetShortKeyExist(t *testing.T) {
 		},
 		ServerAddress: "localhost:8080",
 		BaseURL:       "http://localhost:8080/",
-		DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
+		CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 	}
-	shortKey, ok := us.getShortURL("shortURL")
+	shortKey, err := us.getShortURL("https://www.example.com")
 
-	if ok {
+	if err != nil {
 		assert.Equal(t, "shortURL", shortKey, "Incorrect Short URL")
 	}
 }
@@ -207,7 +210,7 @@ func TestURLShortener_PostHandlerTable(t *testing.T) {
 				Storage:       &storage.InMemoryStorage{Urls: make(map[string]string)},
 				ServerAddress: "localhost:8080",
 				BaseURL:       "http://localhost:8080/",
-				DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
+				CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 			},
 			prepare: func(us *URLShortener) {
 				var requestBody RequestBody
@@ -237,21 +240,20 @@ func TestURLShortener_PostHandlerTable(t *testing.T) {
 				},
 				ServerAddress: "localhost:8080",
 				BaseURL:       "http://localhost:8080/",
-				DataStorage:   &storage.FileStorage{FileStoragePath: "./log.txt"},
+				CookieManager: &cookie.CookieManager{ActualCookieValue: "test"},
 			},
 			prepare: func(us *URLShortener) {
-				req, err := http.NewRequest(http.MethodGet, "/api/shorten", nil)
+				router := chi.NewRouter()
+				router.Post("/api/shorten", us.JSONPostHandler)
 
+				req, err := http.NewRequest(http.MethodGet, "/api/shorten", nil)
 				if err != nil {
 					t.Fatal(err)
 				}
 
 				w := httptest.NewRecorder()
-				us.JSONPostHandler(w, req)
-				assert.Equal(t, http.StatusBadRequest, w.Code, "Invalid status code")
-
-				body := w.Body.String()
-				assert.Equal(t, "Only POST requests are allowed!\n", body, "Invalid response message")
+				router.ServeHTTP(w, req)
+				assert.Equal(t, http.StatusMethodNotAllowed, w.Code, "Invalid status code")
 			},
 		},
 	}
