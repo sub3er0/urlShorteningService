@@ -2,10 +2,11 @@ package logger
 
 import (
 	"fmt"
-	"github.com/go-chi/chi/v5/middleware"
-	"go.uber.org/zap"
 	"net/http"
 	"time"
+
+	"github.com/go-chi/chi/v5/middleware"
+	"go.uber.org/zap"
 )
 
 var Sugar zap.SugaredLogger

@@ -1,6 +1,13 @@
 package main
 
 import (
+	"context"
+	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"time"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/sub3er0/urlShorteningService/internal/config"
 	"github.com/sub3er0/urlShorteningService/internal/cookie"
@@ -12,8 +19,6 @@ import (
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"log"
-	"net/http"
 )
 
 var shortenerInstance *shortener.URLShortener
@@ -107,9 +112,30 @@ func main() {
 
 	r.Get("/ping", shortenerInstance.PingHandler)
 
-	err = http.ListenAndServe(cfg.ServerAddress, r)
-
-	if err != nil {
-		log.Fatalf("Error starting server: %s", err)
+	srv := &http.Server{
+		Addr:    cfg.ServerAddress,
+		Handler: r,
 	}
+
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Error starting server: %s", err)
+		}
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+
+	<-stop
+
+	log.Println("Shutting down server...")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalf("Error shutting down server: %s", err)
+	}
+
+	log.Println("Server has exited.")
 }

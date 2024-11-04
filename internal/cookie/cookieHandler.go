@@ -5,15 +5,26 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
-	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/sub3er0/urlShorteningService/internal/storage"
 )
 
 type CookieManager struct {
 	Storage           storage.UserStorageInterface
 	ActualCookieValue string
+}
+
+type CookieManagerInterface interface {
+	CookieHandler(h http.Handler) http.Handler
+	AuthMiddleware(h http.Handler) http.Handler
+	GetActualCookieValue() string
+}
+
+func (cm *CookieManager) GetActualCookieValue() string {
+	return cm.ActualCookieValue
 }
 
 var (

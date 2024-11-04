@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"log"
 )
 
 type URLStorageInterface interface {
@@ -21,8 +22,11 @@ type URLStorageInterface interface {
 	Close()
 }
 
+// CommandTag - интерфейс для работы с результатами выполнения команд.
+type CommandTag interface{}
+
 type URLStorage struct {
-	conn *pgxpool.Pool
+	conn DBConnectionInterface
 	ctx  context.Context
 }
 

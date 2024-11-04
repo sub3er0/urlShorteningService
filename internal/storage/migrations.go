@@ -1,5 +1,7 @@
 package storage
 
+const tableName = "urls"
+
 // URL представляет структуру таблицы urls.
 type URL struct {
 	ID        uint   `gorm:"primaryKey"`
