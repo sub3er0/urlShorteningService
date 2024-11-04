@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/pkg/errors"
 	"github.com/sub3er0/urlShorteningService/internal/cookie"
+	"github.com/sub3er0/urlShorteningService/internal/repository"
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"io"
 	"log"
@@ -15,12 +16,13 @@ import (
 
 // URLShortener Структура URLShortener, использующая интерфейс хранения
 type URLShortener struct {
-	Storage       storage.URLStorage
-	ServerAddress string
-	BaseURL       string
-	CookieManager *cookie.CookieManager
-	RemoveChan    chan string
-	wg            sync.WaitGroup
+	UrlRepository  repository.UrlRepositoryInterface
+	UserRepository repository.UserRepositoryInterface
+	ServerAddress  string
+	BaseURL        string
+	CookieManager  *cookie.CookieManager
+	RemoveChan     chan string
+	wg             sync.WaitGroup
 }
 
 type JSONResponseBody struct {
@@ -60,7 +62,7 @@ func (us *URLShortener) Worker() {
 		shortURLs = append(shortURLs, urlFromChan)
 
 		if len(shortURLs) >= batchSize {
-			err := us.Storage.DeleteUserUrls(us.CookieManager.ActualCookieValue, shortURLs)
+			err := us.UserRepository.DeleteUserUrls(us.CookieManager.ActualCookieValue, shortURLs)
 			if err != nil {
 				log.Printf("Error while deleting urls")
 			}
@@ -69,7 +71,7 @@ func (us *URLShortener) Worker() {
 	}
 
 	if len(shortURLs) > 0 {
-		if err := us.Storage.DeleteUserUrls(us.CookieManager.ActualCookieValue, shortURLs); err != nil {
+		if err := us.UserRepository.DeleteUserUrls(us.CookieManager.ActualCookieValue, shortURLs); err != nil {
 			log.Printf("Error while deleting remaining URLs: %v", err)
 		}
 	}
@@ -80,13 +82,13 @@ func (e *ExistValueError) Error() string {
 }
 
 func (us *URLShortener) getShortURL(URL string) (string, error) {
-	return us.Storage.GetShortURL(URL)
+	return us.UrlRepository.GetShortURL(URL)
 }
 
 func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	storedURL, ok := us.Storage.GetURL(id)
+	storedURL, ok := us.UrlRepository.GetURL(id)
 
 	if !ok {
 		http.Error(w, "NotFound", http.StatusNotFound)
@@ -99,7 +101,7 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (us *URLShortener) PingHandler(w http.ResponseWriter, r *http.Request) {
-	ok := us.Storage.Ping()
+	ok := us.UrlRepository.Ping()
 
 	if ok {
 		w.WriteHeader(http.StatusOK)
@@ -199,7 +201,7 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 		if len(responseBodyBatch) == 1000 {
 			us.saveBatch(w, dataStorageRows)
 			dataStorageRows = dataStorageRows[:0]
-			us.Storage.Save(shortKey, requestBodyRow.OriginalURL, us.CookieManager.ActualCookieValue)
+			us.UrlRepository.Save(shortKey, requestBodyRow.OriginalURL, us.CookieManager.ActualCookieValue)
 		}
 	}
 
@@ -216,7 +218,7 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (us *URLShortener) GetUserUrls(w http.ResponseWriter, r *http.Request) {
-	urls, err := us.Storage.GetUserUrls(us.CookieManager.ActualCookieValue)
+	urls, err := us.UserRepository.GetUserUrls(us.CookieManager.ActualCookieValue)
 
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -236,7 +238,7 @@ func (us *URLShortener) GetUserUrls(w http.ResponseWriter, r *http.Request) {
 }
 
 func (us *URLShortener) saveBatch(w http.ResponseWriter, dataStorageRows []storage.DataStorageRow) {
-	err := us.Storage.SaveBatch(dataStorageRows)
+	err := us.UrlRepository.SaveBatch(dataStorageRows)
 
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -288,7 +290,7 @@ func (us *URLShortener) getShortKey(postURL string) (string, error) {
 	}
 
 	shortKey = generateShortKey()
-	err = us.Storage.Save(shortKey, postURL, us.CookieManager.ActualCookieValue)
+	err = us.UrlRepository.Save(shortKey, postURL, us.CookieManager.ActualCookieValue)
 
 	if err != nil {
 		return "", err
@@ -417,7 +419,7 @@ func (us *URLShortener) DeleteUserUrlsBatch(shortURLs []string) {
 		}
 
 		urlsBatch := shortURLs[i:end]
-		err := us.Storage.DeleteUserUrls(us.CookieManager.ActualCookieValue, urlsBatch)
+		err := us.UserRepository.DeleteUserUrls(us.CookieManager.ActualCookieValue, urlsBatch)
 		if err != nil {
 			log.Printf("Error while deleting urls")
 		}

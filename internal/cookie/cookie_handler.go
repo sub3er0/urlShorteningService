@@ -12,7 +12,7 @@ import (
 )
 
 type CookieManager struct {
-	Storage           storage.URLStorage
+	Storage           storage.UserStorageInterface
 	ActualCookieValue string
 }
 

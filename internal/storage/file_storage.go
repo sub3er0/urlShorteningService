@@ -13,6 +13,12 @@ type FileStorage struct {
 	FileStoragePath string
 }
 
+func (fs *FileStorage) Init(connectionString string) error {
+	return nil
+}
+
+func (fs *FileStorage) Close() {}
+
 func (fs *FileStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
 	urlCount := fs.GetURLCount()
 	for i := range dataStorageRows {

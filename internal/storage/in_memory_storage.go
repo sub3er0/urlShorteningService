@@ -9,6 +9,12 @@ type InMemoryStorage struct {
 	Urls map[string]string
 }
 
+func (ims *InMemoryStorage) Init(connectionString string) error {
+	return nil
+}
+
+func (ims *InMemoryStorage) Close() {}
+
 func (ims *InMemoryStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
 	for _, row := range dataStorageRows {
 		ims.Urls[row.ShortURL] = row.URL

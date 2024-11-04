@@ -11,12 +11,17 @@ import (
 
 const tableName = "urls"
 
-type PgStorage struct {
+type PgUrlsStorage struct {
 	conn *pgxpool.Pool
 	ctx  context.Context
 }
 
-func (pgs *PgStorage) GetURL(shortURL string) (GetURLRow, bool) {
+type PgUsersStorage struct {
+	conn *pgxpool.Pool
+	ctx  context.Context
+}
+
+func (pgs *PgUrlsStorage) GetURL(shortURL string) (GetURLRow, bool) {
 	var getURLRow GetURLRow
 	query := fmt.Sprintf("SELECT url, is_deleted FROM %s WHERE short_url = $1", tableName)
 	rows, err := pgs.conn.Query(pgs.ctx, query, shortURL)
@@ -42,11 +47,11 @@ func (pgs *PgStorage) GetURL(shortURL string) (GetURLRow, bool) {
 	return getURLRow, true
 }
 
-func (pgs *PgStorage) GetURLCount() int {
+func (pgs *PgUrlsStorage) GetURLCount() int {
 	return 0
 }
 
-func (pgs *PgStorage) GetShortURL(URL string) (string, error) {
+func (pgs *PgUrlsStorage) GetShortURL(URL string) (string, error) {
 	query := fmt.Sprintf("SELECT short_url FROM %s WHERE url = $1", tableName)
 	rows, err := pgs.conn.Query(pgs.ctx, query, URL)
 
@@ -72,7 +77,7 @@ func (pgs *PgStorage) GetShortURL(URL string) (string, error) {
 	return shortURL, nil
 }
 
-func (pgs *PgStorage) Init(connectionString string) error {
+func (pgs *PgUrlsStorage) Init(connectionString string) error {
 	pgs.ctx = context.Background()
 	var err error
 	pgs.conn, err = pgxpool.Connect(pgs.ctx, connectionString)
@@ -87,9 +92,9 @@ func (pgs *PgStorage) Init(connectionString string) error {
 		url VARCHAR(100) UNIQUE,
 		short_url VARCHAR(100) UNIQUE,
 	    user_id VARCHAR(100),
-	    is_deleted BOOLEAN DEFAULT FALSE
 	);
 	ALTER TABLE urls ADD UNIQUE (url, short_url);
+	ALTER TABLE urls ADD is_deleted BOOLEAN DEFAULT FALSE;
 
 	CREATE TABLE IF NOT EXISTS users_cookie (
 		id SERIAL PRIMARY KEY,
@@ -104,7 +109,7 @@ func (pgs *PgStorage) Init(connectionString string) error {
 	return nil
 }
 
-func (pgs *PgStorage) Ping() bool {
+func (pgs *PgUrlsStorage) Ping() bool {
 	if err := pgs.conn.Ping(pgs.ctx); err != nil {
 		return false
 	}
@@ -112,21 +117,21 @@ func (pgs *PgStorage) Ping() bool {
 	return true
 }
 
-func (pgs *PgStorage) Save(ShortURL string, URL string, userID string) error {
+func (pgs *PgUrlsStorage) Save(ShortURL string, URL string, userID string) error {
 	query := fmt.Sprintf("INSERT INTO %s (short_url, url, user_id) VALUES ($1, $2, $3)", tableName)
 	_, err := pgs.conn.Exec(pgs.ctx, query, ShortURL, URL, userID)
 	return err
 }
 
-func (pgs *PgStorage) LoadData() ([]DataStorageRow, error) {
+func (pgs *PgUrlsStorage) LoadData() ([]DataStorageRow, error) {
 	return nil, nil
 }
 
-func (pgs *PgStorage) Close() {
+func (pgs *PgUrlsStorage) Close() {
 	pgs.conn.Close()
 }
 
-func (pgs *PgStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
+func (pgs *PgUrlsStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
 	batch := &pgx.Batch{}
 	for _, dataStorageRow := range dataStorageRows {
 		batch.Queue(
@@ -147,9 +152,9 @@ func (pgs *PgStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
 	return nil
 }
 
-func (pgs *PgStorage) IsUserExist(uniqueID string) bool {
+func (pgus *PgUsersStorage) IsUserExist(uniqueID string) bool {
 	query := "SELECT id FROM users_cookie WHERE user_id = $1"
-	rows, err := pgs.conn.Query(pgs.ctx, query, uniqueID)
+	rows, err := pgus.conn.Query(pgus.ctx, query, uniqueID)
 
 	if err != nil {
 		return false
@@ -169,15 +174,15 @@ func (pgs *PgStorage) IsUserExist(uniqueID string) bool {
 	return rowsCount > 0
 }
 
-func (pgs *PgStorage) SaveUser(uniqueID string) error {
+func (pgus *PgUsersStorage) SaveUser(uniqueID string) error {
 	query := "INSERT INTO users_cookie (user_id) VALUES ($1)"
-	_, err := pgs.conn.Exec(pgs.ctx, query, uniqueID)
+	_, err := pgus.conn.Exec(pgus.ctx, query, uniqueID)
 	return err
 }
 
-func (pgs *PgStorage) GetUserUrls(uniqueID string) ([]UserUrlsResponseBodyItem, error) {
+func (pgus *PgUsersStorage) GetUserUrls(uniqueID string) ([]UserUrlsResponseBodyItem, error) {
 	query := fmt.Sprintf("SELECT url, short_url FROM %s WHERE user_id = $1 AND is_deleted = false", tableName)
-	rows, err := pgs.conn.Query(pgs.ctx, query, uniqueID)
+	rows, err := pgus.conn.Query(pgus.ctx, query, uniqueID)
 
 	if err != nil {
 		return nil, err
@@ -203,14 +208,14 @@ func (pgs *PgStorage) GetUserUrls(uniqueID string) ([]UserUrlsResponseBodyItem, 
 	return responseUrls, nil
 }
 
-func (pgs *PgStorage) DeleteUserUrls(uniqueID string, shortURLS []string) error {
+func (pgus *PgUsersStorage) DeleteUserUrls(uniqueID string, shortURLS []string) error {
 	batch := &pgx.Batch{}
 	for _, shortURL := range shortURLS {
 		batch.Queue(
 			"UPDATE urls SET is_deleted = true WHERE short_url = $1 AND user_id = $2", shortURL, uniqueID)
 	}
 
-	br := pgs.conn.SendBatch(context.Background(), batch)
+	br := pgus.conn.SendBatch(context.Background(), batch)
 	defer br.Close()
 
 	for i := 0; i < len(shortURLS); i++ {
