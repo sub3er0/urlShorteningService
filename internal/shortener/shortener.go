@@ -243,6 +243,7 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+	log.Printf("END BATCH HADLER")
 }
 
 func (us *URLShortener) GetUserUrls(w http.ResponseWriter, r *http.Request) {
