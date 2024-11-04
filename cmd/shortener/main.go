@@ -25,29 +25,29 @@ func main() {
 		log.Fatalf("Error while initializing config: %v", err)
 	}
 
-	dsn := cfg.DatabaseDsn
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-
-	if err != nil {
-		log.Fatalf("Failed to connect database: %v", err)
-	}
-
-	err = db.AutoMigrate(storage.URL{})
-
-	if err != nil {
-		log.Fatalf("Failed to connect database: %v", err)
-	}
-
-	err = db.AutoMigrate(storage.UserCookie{})
-
-	if err != nil {
-		log.Fatalf("Failed to connect database: %v", err)
-	}
-
 	var dataUrlsStorage storage.URLStorageInterface
 	var dataUsersStorage storage.UserStorageInterface
 
 	if cfg.DatabaseDsn != "" {
+		dsn := cfg.DatabaseDsn
+		db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+
+		if err != nil {
+			log.Fatalf("Failed to connect database: %v", err)
+		}
+
+		err = db.AutoMigrate(storage.URL{})
+
+		if err != nil {
+			log.Fatalf("Failed to connect database: %v", err)
+		}
+
+		err = db.AutoMigrate(storage.UserCookie{})
+
+		if err != nil {
+			log.Fatalf("Failed to connect database: %v", err)
+		}
+
 		dataUrlsStorage = &storage.URLStorage{}
 		dataUrlsStorage.Init(cfg.DatabaseDsn)
 		defer dataUrlsStorage.Close()
