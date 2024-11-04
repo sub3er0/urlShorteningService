@@ -239,6 +239,7 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 	err = us.buildJSONBatchResponse(w, responseBodyBatch)
 
 	if err != nil {
+		log.Printf("Internal Server Error")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
