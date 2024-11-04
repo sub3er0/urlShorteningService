@@ -13,23 +13,17 @@ type Config struct {
 	DatabaseDsn     string
 }
 
-var isParsed bool
-
 func InitConfig() (*Config, error) {
 	cfg := &Config{}
 
-	if !isParsed {
-		flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080/", "Базовый адрес для сокращенных URL")
-		flag.StringVar(&cfg.ServerAddress, "a", "localhost:8080", "Адрес HTTP-сервера")
-		flag.StringVar(&cfg.FileStoragePath, "f", "", "Путь до файла")
-		flag.StringVar(
-			&cfg.DatabaseDsn,
-			"d", "",
-			"Строка подключения к базе данных")
-
-		flag.Parse()
-		isParsed = true
-	}
+	flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080/", "Базовый адрес для сокращенных URL")
+	flag.StringVar(&cfg.ServerAddress, "a", "localhost:8080", "Адрес HTTP-сервера")
+	flag.StringVar(&cfg.FileStoragePath, "f", "", "Путь до файла")
+	flag.StringVar(
+		&cfg.DatabaseDsn,
+		"d", "",
+		"Строка подключения к базе данных")
+	flag.Parse()
 
 	if ServerAddress := os.Getenv("SERVER_ADDRESS"); ServerAddress != "" {
 		cfg.ServerAddress = ServerAddress
