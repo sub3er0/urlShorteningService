@@ -2,11 +2,21 @@ package repository
 
 import "github.com/sub3er0/urlShorteningService/internal/storage"
 
+// UserRepositoryInterface определяет методы для работы с репозиторием пользователей.
+// Этот интерфейс предоставляет доступ к операциям проверки существования пользователя,
+// сохранения пользователей, получения и удаления их URL.
 type UserRepositoryInterface interface {
+	// IsUserExist проверяет, существует ли пользователь по его уникальному идентификатору.
 	IsUserExist(uniqueID string) bool
+
+	// SaveUser сохраняет нового пользователя с указанным уникальным идентификатором.
 	SaveUser(uniqueID string) error
+
+	// GetUserUrls возвращает список URL, сохранённых для указанного пользователя.
 	GetUserUrls(uniqueID string) ([]storage.UserUrlsResponseBodyItem, error)
-	DeleteUserUrls(uniqueID string, shortURLS []string) error
+
+	// DeleteUserUrls удаляет указанный список коротких URL для указанного пользователя.
+	DeleteUserUrls(uniqueID string, shortURLs []string) error
 }
 
 // UserRepository реализует UserRepositoryInterface.

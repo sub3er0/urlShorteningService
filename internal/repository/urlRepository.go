@@ -2,17 +2,38 @@ package repository
 
 import "github.com/sub3er0/urlShorteningService/internal/storage"
 
+// URLRepositoryInterface определяет методы для работы с репозиторием URL.
+// Этот интерфейс предоставляет доступ к операциям получения, сохранения и манипуляции с URL в хранилище.
 type URLRepositoryInterface interface {
+	// GetURL возвращает полный URL и статус его наличия по заданному короткому URL.
 	GetURL(shortURL string) (storage.GetURLRow, bool)
+
+	// GetURLCount возвращает общее количество URL в репозитории.
 	GetURLCount() int
+
+	// GetShortURL возвращает короткий URL для заданного полного URL.
+	// Если в репозитории нет запись, возвращается ошибка.
 	GetShortURL(URL string) (string, error)
+
+	// Save сохраняет короткий URL с соответствующим полному URL и идентификатором пользователя.
 	Save(ShortURL string, URL string, userID string) error
+
+	// LoadData загружает данные о URL из хранилища в виде массива DataStorageRow.
 	LoadData() ([]storage.DataStorageRow, error)
+
+	// Ping проверяет состояние соединения с базой данных.
+	// Возвращает true, если соединение успешно.
 	Ping() bool
+
+	// SaveBatch сохраняет пакет данных, представленных в виде массива DataStorageRow.
 	SaveBatch(dataStorageRows []storage.DataStorageRow) error
 }
 
+// URLRepository отвечает за взаимодействие между
+// бизнес-логикой приложения и хранилищем данных URL.
+// Он инкапсулирует методы для работы с хранения и получения URL.
 type URLRepository struct {
+	// Storage представляет собой интерфейс для взаимодействия с хранилищем URL.
 	Storage storage.URLStorageInterface
 }
 

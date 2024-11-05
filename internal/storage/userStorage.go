@@ -9,18 +9,43 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
+// UserStorageInterface определяет методы для работы с хранилищем пользователей.
+// Этот интерфейс предоставляет доступ к операциям проверки существования пользователя,
+// сохранения пользователей, получения их URL и удаления URL.
 type UserStorageInterface interface {
+	// IsUserExist проверяет, существует ли пользователь по указанному уникальному идентификатору.
+	// Возвращает true, если пользователь существует, и false в противном случае.
 	IsUserExist(uniqueID string) bool
+
+	// SaveUser сохраняет нового пользователя с заданным уникальным идентификатором.
+	// Возвращает ошибку, если сохранение не удалось.
 	SaveUser(uniqueID string) error
+
+	// GetUserUrls возвращает список коротких URL для указанного пользователя.
+	// В случае успешного получения возвращает массив UserUrlsResponseBodyItem и nil.
+	// В случае ошибки возвращает nil и ошибку.
 	GetUserUrls(uniqueID string) ([]UserUrlsResponseBodyItem, error)
-	DeleteUserUrls(uniqueID string, shortURLS []string) error
+
+	// DeleteUserUrls удаляет указанные короткие URL для указанного пользователя.
+	// Возвращает ошибку, если возникла ошибка удаления.
+	DeleteUserUrls(uniqueID string, shortURLs []string) error
+
+	// Init инициализирует хранилище пользователей с помощью строки соединения.
+	// Возвращает ошибку, если произошла ошибка инициализации.
 	Init(connectionString string) error
+
+	// Close закрывает соединение с хранилищем данных.
 	Close()
 }
 
+// UsersStorage предоставляет реализацию для работы с хранилищем пользователей
+// и взаимодействия с базой данных через пул соединений pgx.
 type UsersStorage struct {
+	// conn представляет пул соединений с базой данных, позволяющий выполнять SQL-команды и запросы.
 	conn *pgxpool.Pool
-	ctx  context.Context
+
+	// ctx представляет контекст, используемый для управления временем жизни запросов и операций.
+	ctx context.Context
 }
 
 func (us *UsersStorage) IsUserExist(uniqueID string) bool {

@@ -2,13 +2,19 @@ package storage
 
 import (
 	"context"
-	"github.com/jackc/pgx/v4/pgxpool"
 	"log"
+
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
+// DefaultStorage предоставляет реализацию для работы с хранилищем данных.
+// Она включает в себя соединение с базой данных и контекст для управления операциям.
 type DefaultStorage struct {
+	// conn представляет подключение к базе данных, позволяющее выполнять команды и запросы.
 	conn DBConnectionInterface
-	ctx  context.Context
+
+	// ctx представляет контекст, который используется для управления временем жизни запросов и операций.
+	ctx context.Context
 }
 
 func (ds *DefaultStorage) Init(connectionString string) error {

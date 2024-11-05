@@ -16,15 +16,30 @@ import (
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 )
 
-// URLShortener Структура URLShortener, использующая интерфейс хранения
+// URLShortener представляет структуру, ответственную за обработку
+// запросов на создание коротких URL и управление взаимодействиями с
+// хранилищами URL и пользователей.
 type URLShortener struct {
-	URLRepository  repository.URLRepositoryInterface
+	// URLRepository предоставляет доступ к операциям работы с URL в хранилище.
+	URLRepository repository.URLRepositoryInterface
+
+	// UserRepository предоставляет доступ к операциям работы с пользователями в хранилище.
 	UserRepository repository.UserRepositoryInterface
-	ServerAddress  string
-	BaseURL        string
-	CookieManager  cookie.CookieManagerInterface
-	RemoveChan     chan string
-	wg             sync.WaitGroup
+
+	// ServerAddress определяет адрес HTTP-сервера, на котором будет работать приложение.
+	ServerAddress string
+
+	// BaseURL представляет базовый адрес, который используется для сокращённых URL.
+	BaseURL string
+
+	// CookieManager управляет аутентификацией и обработкой куки в приложении.
+	CookieManager cookie.CookieManagerInterface
+
+	// RemoveChan — это канал, который используется для передачи коротких URL, которые нужно удалить.
+	RemoveChan chan string
+
+	// wg используется для управления ожидающими горутинами.
+	wg sync.WaitGroup
 }
 
 // URLShortenerInterface - интерфейс для работы с сокращениями URL.
@@ -51,30 +66,42 @@ type URLShortenerInterface interface {
 	Worker()
 }
 
+// JSONResponseBody представляет структуру для ответа в формате JSON.
+// Включает поле Result, содержащее результат выполнения какой-либо операции.
 type JSONResponseBody struct {
-	Result string `json:"result"`
+	Result string `json:"result"` // Результат выполнения, представляет собой строку.
 }
 
+// RequestBody представляет структуру для запроса, содержащего URL.
+// Используется при получении короткого URL.
 type RequestBody struct {
-	URL string `json:"url"`
+	URL string `json:"url"` // Полный URL для сокращения.
 }
 
+// DeleteRequestBody представляет структуру для запроса на удаление короткого URL.
+// Служит для передачи данных, необходимых для операций удаления.
 type DeleteRequestBody struct {
-	ShortURL string `json:"short_url"`
+	ShortURL string `json:"short_url"` // Короткий URL, который необходимо удалить.
 }
 
+// BatchRequestBody представляет структуру для пакетных запросов на создание сокращенных URL.
+// Содержит идентификатор корреляции и оригинальный URL.
 type BatchRequestBody struct {
-	CorrelationID string `json:"correlation_id"`
-	OriginalURL   string `json:"original_url"`
+	CorrelationID string `json:"correlation_id"` // Идентификатор корреляции для отслеживания в запросах.
+	OriginalURL   string `json:"original_url"`   // Оригинальный URL, который будет сокращён.
 }
 
+// BatchResponseBodyItem представляет элемент ответа для пакетных операций по сокращению URL.
+// Содержит идентификатор корреляции и сокращенный URL.
 type BatchResponseBodyItem struct {
-	CorrelationID string `json:"correlation_id"`
-	ShortURL      string `json:"short_url"`
+	CorrelationID string `json:"correlation_id"` // Идентификатор корреляции для сопоставления с запросом.
+	ShortURL      string `json:"short_url"`      // Сокращенный URL.
 }
 
+// ExistValueError представляет пользовательскую ошибку для случаев,
+// когда значение уже существует в системе.
 type ExistValueError struct {
-	Text string
+	Text string // Сообщение об ошибке.
 }
 
 var ErrShortURLExists = &ExistValueError{Text: "ShortURL already exists"}

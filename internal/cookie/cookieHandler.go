@@ -12,14 +12,29 @@ import (
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 )
 
+// CookieManager управляет аутентификацией и обработкой куки в приложении.
+// Он предоставляет методы для установки, проверки и получения значений куки.
 type CookieManager struct {
-	Storage           storage.UserStorageInterface
+	// Storage используется для взаимодействия с хранилищем пользователей.
+	Storage storage.UserStorageInterface
+
+	// ActualCookieValue содержит текущее значение куки аутентификации пользователя.
 	ActualCookieValue string
 }
 
+// CookieManagerInterface определяет методы для работы с куками в приложении.
+// Этот интерфейс позволяет управлять куками и реализовывать middleware для аутентификации.
 type CookieManagerInterface interface {
+	// CookieHandler оборачивает HTTP-обработчик для управления кукми.
+	// Возвращает обработчик, который изменён для работы с куками.
 	CookieHandler(h http.Handler) http.Handler
+
+	// AuthMiddleware оборачивает HTTP-обработчик для проверки аутентификации пользователя.
+	// Внутри проверяет наличие и корректность куки, а также существование пользователя.
+	// Если аутентификация не пройдена, возвращает статус 401 Unauthorized.
 	AuthMiddleware(h http.Handler) http.Handler
+
+	// GetActualCookieValue возвращает значение актуальной куки для текущего пользователя.
 	GetActualCookieValue() string
 }
 

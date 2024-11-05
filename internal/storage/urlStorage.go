@@ -10,24 +10,47 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
+// URLStorageInterface определяет методы для работы с хранилищем URL.
 type URLStorageInterface interface {
+	// GetURL получит URL по его короткому формату.
 	GetURL(shortURL string) (GetURLRow, bool)
+
+	// GetURLCount возвращает общее количество URL в хранилище.
 	GetURLCount() int
+
+	// GetShortURL возвращает короткий формат URL для заданного полного URL.
 	GetShortURL(URL string) (string, error)
+
+	// Save сохраняет короткий URL с соответствующим полным URL и идентификатором пользователя.
 	Save(ShortURL string, URL string, userID string) error
+
+	// LoadData загружает данные из хранилища в массив DataStorageRow.
 	LoadData() ([]DataStorageRow, error)
+
+	// Ping проверяет состояние подключения к базе данных.
 	Ping() bool
+
+	// SaveBatch сохраняет пакет данных, представленных в виде массива DataStorageRow.
 	SaveBatch(dataStorageRows []DataStorageRow) error
+
+	// Init инициализирует соединение с хранилищем данных, используя заданную строку подключения.
 	Init(connectionString string) error
+
+	// Close закрывает соединение с хранилищем данных.
 	Close()
 }
 
 // CommandTag - интерфейс для работы с результатами выполнения команд.
 type CommandTag interface{}
 
+// URLStorage предоставляет методы для работы с хранилищем URL в базе данных.
+// Она управляет соединением с базой данных и контекстом, необходимым для выполнения операций.
 type URLStorage struct {
+	// conn представляет соединение с базой данных, предоставляющее доступ к методам SQL.
 	conn DBConnectionInterface
-	ctx  context.Context
+
+	// ctx представляет контекст, используемый для управления временем жизни запросов и операций.
+	ctx context.Context
 }
 
 func (us *URLStorage) GetURL(shortURL string) (GetURLRow, bool) {
