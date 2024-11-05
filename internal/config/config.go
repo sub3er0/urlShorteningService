@@ -6,15 +6,26 @@ import (
 	"os"
 )
 
+// Config представляет конфигурацию приложения.
+// Это структура содержит параметры, необходимые для настройки серверного приложения.
 type Config struct {
-	ServerAddress   string
-	BaseURL         string
-	FileStoragePath string
-	DatabaseDsn     string
+	// ServerAddress определяет адрес HTTP-сервера, на котором будет работать приложение.
+	ServerAddress string `json:"server_address"`
+
+	// BaseURL представляет базовый адрес, который используется для сокращенных URL.
+	BaseURL string `json:"base_url"`
+
+	// FileStoragePath задает путь к файлу, где могут храниться данные.
+	FileStoragePath string `json:"file_storage_path"`
+
+	// DatabaseDsn представляет строку подключения к базе данных.
+	DatabaseDsn string `json:"database_dsn"`
 }
 
+// isParsed отслеживает, выполнена ли обработка аргументов командной строки.
 var isParsed bool
 
+// InitConfig инициализирует конфигурацию приложения.
 func InitConfig() (*Config, error) {
 	cfg := &Config{}
 

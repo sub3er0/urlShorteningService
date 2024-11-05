@@ -9,8 +9,11 @@ import (
 	"go.uber.org/zap"
 )
 
+// Sugar является экземпляром логгера с уровнями информации и отладки.
 var Sugar zap.SugaredLogger
 
+// RequestLogger создает HTTP-обработчик, который логирует информацию о запросах и
+// ответах, используя логгер Sugar.
 func RequestLogger(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

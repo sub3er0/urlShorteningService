@@ -38,6 +38,8 @@ type CookieManagerInterface interface {
 	GetActualCookieValue() string
 }
 
+// GetActualCookieValue возвращает значение актуальной куки для текущего пользователя.
+// Возвращает строку, представляющую актуальное значение куки.
 func (cm *CookieManager) GetActualCookieValue() string {
 	return cm.ActualCookieValue
 }
@@ -47,6 +49,8 @@ var (
 	cookieName = "user_info"
 )
 
+// signCookie вычисляет HMAC-подпись для данных.
+// Используется для проверки подлинности куки.
 func signCookie(data string) string {
 	h := hmac.New(sha256.New, secretKey)
 	h.Write([]byte(data))
@@ -55,6 +59,7 @@ func signCookie(data string) string {
 	return base64.RawURLEncoding.EncodeToString(signature)
 }
 
+// verifyCookie проверяет корректность куки, сравнивая подпись с ожидаемой.
 func verifyCookie(str string) bool {
 	parts := strings.Split(str, ".")
 	if len(parts) != 2 {
@@ -68,6 +73,7 @@ func verifyCookie(str string) bool {
 	return sigStr == expected
 }
 
+// getUserIDFromCookie извлекает идентификатор пользователя из куки.
 func getUserIDFromCookie(str string) (string, bool) {
 	parts := strings.Split(str, ".")
 	if len(parts) != 2 {
@@ -77,12 +83,14 @@ func getUserIDFromCookie(str string) (string, bool) {
 	return parts[0], true
 }
 
+// generateUserID генерирует уникальный идентификатор пользователя.
 func generateUserID() string {
 	b := make([]byte, 16)
 	rand.Read(b)
 	return base64.URLEncoding.EncodeToString(b)
 }
 
+// CookieHandler оборачивает HTTP-обработчик, добавляя логику работы с куками.
 func (cm *CookieManager) CookieHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(cookieName)

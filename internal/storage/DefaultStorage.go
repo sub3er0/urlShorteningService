@@ -17,6 +17,12 @@ type DefaultStorage struct {
 	ctx context.Context
 }
 
+// Init инициализирует соединение с базой данных по заданной строке подключения.
+// Параметры:
+//   - connectionString: строка подключения к базе данных.
+//
+// Возвращает ошибку, если инициализация соединения не удалась или
+// если возникла ошибка при выполнении SQL-команд.
 func (ds *DefaultStorage) Init(connectionString string) error {
 	ds.ctx = context.Background()
 	var err error
@@ -49,6 +55,8 @@ func (ds *DefaultStorage) Init(connectionString string) error {
 	return nil
 }
 
+// Close закрывает соединение с базой данных.
+// Этот метод должен вызываться для освобождения всех ресурсов, занимаемых соединением.
 func (ds *DefaultStorage) Close() {
 	ds.conn.Close()
 }

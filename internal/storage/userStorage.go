@@ -48,6 +48,8 @@ type UsersStorage struct {
 	ctx context.Context
 }
 
+// IsUserExist проверяет, существует ли пользователь по его уникальному идентификатору.
+// Возвращает true, если пользователь существует, и false в противном случае.
 func (us *UsersStorage) IsUserExist(uniqueID string) bool {
 	query := "SELECT id FROM users_cookie WHERE user_id = $1"
 	rows, err := us.conn.Query(us.ctx, query, uniqueID)
@@ -70,12 +72,16 @@ func (us *UsersStorage) IsUserExist(uniqueID string) bool {
 	return rowsCount > 0
 }
 
+// SaveUser сохраняет нового пользователя с указанным уникальным идентификатором.
+// Возвращает ошибку, если сохранение не удалось.
 func (us *UsersStorage) SaveUser(uniqueID string) error {
 	query := "INSERT INTO users_cookie (user_id) VALUES ($1)"
 	_, err := us.conn.Exec(us.ctx, query, uniqueID)
 	return err
 }
 
+// GetUserUrls возвращает список URL, сохраненных для указанного пользователя.
+// Возвращает массив UserUrlsResponseBodyItem и ошибку, если произошла ошибка чтения.
 func (us *UsersStorage) GetUserUrls(uniqueID string) ([]UserUrlsResponseBodyItem, error) {
 	query := fmt.Sprintf("SELECT url, short_url FROM %s WHERE user_id = $1 AND is_deleted = false", tableName)
 	rows, err := us.conn.Query(us.ctx, query, uniqueID)
@@ -104,6 +110,8 @@ func (us *UsersStorage) GetUserUrls(uniqueID string) ([]UserUrlsResponseBodyItem
 	return responseUrls, nil
 }
 
+// DeleteUserUrls удаляет указанные короткие URL для указанного пользователя.
+// Возвращает ошибку, если возникла ошибка удаления.
 func (us *UsersStorage) DeleteUserUrls(uniqueID string, shortURLS []string) error {
 	batch := &pgx.Batch{}
 	for _, shortURL := range shortURLS {
@@ -124,6 +132,11 @@ func (us *UsersStorage) DeleteUserUrls(uniqueID string, shortURLS []string) erro
 	return nil
 }
 
+// Init инициализирует соединение с базой данных по заданной строке подключения.
+// Параметры:
+//   - connectionString: строка подключения к базе данных.
+//
+// Возвращает ошибку, если инициализация соединения не удалась.
 func (us *UsersStorage) Init(connectionString string) error {
 	us.ctx = context.Background()
 	var err error
@@ -136,6 +149,8 @@ func (us *UsersStorage) Init(connectionString string) error {
 	return nil
 }
 
+// Close закрывает соединение с базой данных.
+// Этот метод должен вызываться для освобождения всех ресурсов, занимаемых соединением.
 func (us *UsersStorage) Close() {
 	us.conn.Close()
 }

@@ -37,10 +37,12 @@ type URLRepository struct {
 	Storage storage.URLStorageInterface
 }
 
+// GetStorage возвращает текущее хранилище URL, используемое в репозитории.
 func (ur *URLRepository) GetStorage() storage.URLStorageInterface {
 	return ur.Storage
 }
 
+// GetURL получает URL по его короткому формату.
 func (ur *URLRepository) GetURL(shortURL string) (storage.GetURLRow, bool) {
 	return ur.Storage.GetURL(shortURL)
 }

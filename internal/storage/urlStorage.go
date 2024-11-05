@@ -53,6 +53,8 @@ type URLStorage struct {
 	ctx context.Context
 }
 
+// GetURL возвращает строку, соответствующую заданному короткому URL.
+// Возвращает структуру GetURLRow и булевое значение, указывающее на успех или неудачу.
 func (us *URLStorage) GetURL(shortURL string) (GetURLRow, bool) {
 	var getURLRow GetURLRow
 	query := fmt.Sprintf("SELECT url, is_deleted FROM %s WHERE short_url = $1", tableName)
@@ -79,10 +81,13 @@ func (us *URLStorage) GetURL(shortURL string) (GetURLRow, bool) {
 	return getURLRow, true
 }
 
+// GetURLCount возвращает общее количество URL в хранилище.
 func (us *URLStorage) GetURLCount() int {
 	return 0
 }
 
+// GetShortURL возвращает короткий URL для указанного полного URL.
+// Если в репозитории не найдено, возвращает ошибку.
 func (us *URLStorage) GetShortURL(URL string) (string, error) {
 	query := fmt.Sprintf("SELECT short_url FROM %s WHERE url = $1", tableName)
 	rows, err := us.conn.Query(us.ctx, query, URL)
@@ -109,6 +114,7 @@ func (us *URLStorage) GetShortURL(URL string) (string, error) {
 	return shortURL, nil
 }
 
+// Init инициализирует соединение с базой данных по заданной строке подключения.
 func (us *URLStorage) Init(connectionString string) error {
 	us.ctx = context.Background()
 	var err error
@@ -121,6 +127,8 @@ func (us *URLStorage) Init(connectionString string) error {
 	return nil
 }
 
+// Ping проверяет состояние соединения с базой данных.
+// Возвращает true, если соединение успешно, и false, если возникает ошибка.
 func (us *URLStorage) Ping() bool {
 	if err := us.conn.Ping(us.ctx); err != nil {
 		return false
@@ -129,20 +137,24 @@ func (us *URLStorage) Ping() bool {
 	return true
 }
 
+// Save сохраняет короткий URL с соответствующим полному URL и идентификатором пользователя.
 func (us *URLStorage) Save(ShortURL string, URL string, userID string) error {
 	query := fmt.Sprintf("INSERT INTO %s (short_url, url, user_id) VALUES ($1, $2, $3)", tableName)
 	_, err := us.conn.Exec(us.ctx, query, ShortURL, URL, userID)
 	return err
 }
 
+// LoadData загружает данные из хранилища и возвращает их.
 func (us *URLStorage) LoadData() ([]DataStorageRow, error) {
 	return nil, nil
 }
 
+// Close закрывает соединение с базой данных.
 func (us *URLStorage) Close() {
 	us.conn.Close()
 }
 
+// SaveBatch сохраняет пакетные данные, представленные в виде массива DataStorageRow.
 func (us *URLStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
 	batch := &pgx.Batch{}
 	for _, dataStorageRow := range dataStorageRows {
