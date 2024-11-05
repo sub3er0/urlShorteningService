@@ -107,6 +107,8 @@ type ExistValueError struct {
 	Text string // Сообщение об ошибке.
 }
 
+// ErrShortURLExists указывает на ошибку, возникающую при попытке сохранить
+// короткий URL, который уже существует в хранилище.
 var ErrShortURLExists = &ExistValueError{Text: "ShortURL already exists"}
 
 // Worker Удаляет короткие URL
