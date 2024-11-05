@@ -16,20 +16,20 @@ type UserRepository struct {
 
 // IsUserExist проверяет, существует ли пользователь по уникальному ID.
 func (ur *UserRepository) IsUserExist(uniqueID string) bool {
-	return false
+	return ur.Storage.IsUserExist(uniqueID)
 }
 
 // SaveUser сохраняет пользователя с указанным уникальным ID.
 func (ur *UserRepository) SaveUser(uniqueID string) error {
-	return nil
+	return ur.Storage.SaveUser(uniqueID)
 }
 
 // GetUserUrls возвращает список URL-адресов для указанного уникального ID пользователя.
 func (ur *UserRepository) GetUserUrls(uniqueID string) ([]storage.UserUrlsResponseBodyItem, error) {
-	return []storage.UserUrlsResponseBodyItem{}, nil
+	return ur.Storage.GetUserUrls(uniqueID)
 }
 
 // DeleteUserUrls удаляет указанные URL-адреса для указанного уникального ID пользователя.
 func (ur *UserRepository) DeleteUserUrls(uniqueID string, shortURLS []string) error {
-	return nil
+	return ur.Storage.DeleteUserUrls(uniqueID, shortURLS)
 }
