@@ -17,15 +17,17 @@ func ExampleURLShortener_PostHandler() {
 	req := httptest.NewRequest("POST", "/", bytes.NewBufferString(body))
 	w := httptest.NewRecorder()
 
-	us.PostHandler(w, req) // Вызов метода для создания короткого URL.
+	us.PostHandler(w, req)
 
 	res := w.Result()
 	defer res.Body.Close()
-	jsonResponse, _ := json.Marshal(res) // Преобразование результата в JSON.
 
-	// В этом примере нам нужно проверить содержимое jsonResponse
-	// или статус через различные ассерты.
-	fmt.Println(string(jsonResponse)) // Выводим результат ответа в консоль.
+	var responseBody JSONResponseBody
+	if err := json.NewDecoder(res.Body).Decode(&responseBody); err == nil {
+		fmt.Println("Response:", responseBody.Result)
+	} else {
+		fmt.Println("Error decoding response:", err)
+	}
 }
 
 // ExampleGetHandler демонстрирует использование GetHandler.
