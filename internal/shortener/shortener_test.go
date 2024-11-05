@@ -147,6 +147,31 @@ func TestWorker_SuccessfulDeletion(t *testing.T) {
 	userRepo.AssertExpectations(t)
 }
 
+func BenchmarkWorker(b *testing.B) {
+	userRepo := new(MockUserRepository)
+	cookieManager := &MockCookieManager{ActualCookieValue: "test_user_id"}
+
+	us := &URLShortener{
+		UserRepository: userRepo,
+		CookieManager:  cookieManager,
+		RemoveChan:     make(chan string, 100),
+	}
+
+	for i := 0; i < b.N; i++ {
+		shortURL := "shortURL" + strconv.Itoa(i) // Генерация тестового короткого URL
+		userRepo.On("DeleteUserUrls", cookieManager.ActualCookieValue, []string{shortURL}).Return(nil)
+		cookieManager.On("GetActualCookieValue").Return(cookieManager.ActualCookieValue)
+
+		go us.Worker()
+
+		us.RemoveChan <- shortURL
+	}
+
+	close(us.RemoveChan)
+
+	time.Sleep(100 * time.Millisecond)
+}
+
 func TestWorker_ErrorDuringDeletion(t *testing.T) {
 	userRepo := new(MockUserRepository)
 	cookieManager := &MockCookieManager{ActualCookieValue: "test_user_id"}
