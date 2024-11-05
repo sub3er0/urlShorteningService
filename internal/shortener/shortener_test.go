@@ -493,9 +493,9 @@ func TestJSONBatchHandler_Success(t *testing.T) {
 	// Act
 	us.JSONBatchHandler(w, req)
 
-	// Assert
-	assert.Equal(t, http.StatusCreated, w.Result().StatusCode)
-	w.Result().Body.Close()
+	res := w.Result()
+	assert.Equal(t, http.StatusCreated, res.StatusCode)
+	res.Body.Close()
 	mockRepo.AssertExpectations(t)
 }
 
@@ -553,9 +553,9 @@ func TestJSONBatchHandler_ErrorOnGetShortURL(t *testing.T) {
 	// Act
 	us.JSONBatchHandler(w, req)
 
-	// Assert
-	assert.Equal(t, http.StatusCreated, w.Result().StatusCode) // Ожидаем 201
-	w.Result().Body.Close()
+	res := w.Result()
+	assert.Equal(t, http.StatusCreated, res.StatusCode) // Ожидаем 201
+	res.Body.Close()
 }
 
 func TestJSONBatchHandler_ErrorOnSaveBatch(t *testing.T) {
@@ -585,8 +585,9 @@ func TestJSONBatchHandler_ErrorOnSaveBatch(t *testing.T) {
 
 	us.JSONBatchHandler(w, req)
 
-	assert.Equal(t, http.StatusInternalServerError, w.Result().StatusCode) // Ожидаем 500
-	w.Result().Body.Close()
+	res := w.Result()
+	assert.Equal(t, http.StatusInternalServerError, res.StatusCode) // Ожидаем 500
+	res.Body.Close()
 }
 
 // Тест успешно получения URLs пользователя
