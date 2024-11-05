@@ -18,7 +18,7 @@ import (
 
 // URLShortener Структура URLShortener, использующая интерфейс хранения
 type URLShortener struct {
-	UrlRepository  repository.URLRepositoryInterface
+	URLRepository  repository.URLRepositoryInterface
 	UserRepository repository.UserRepositoryInterface
 	ServerAddress  string
 	BaseURL        string
@@ -107,13 +107,13 @@ func (e *ExistValueError) Error() string {
 }
 
 func (us *URLShortener) getShortURL(URL string) (string, error) {
-	return us.UrlRepository.GetShortURL(URL)
+	return us.URLRepository.GetShortURL(URL)
 }
 
 func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	storedURL, ok := us.UrlRepository.GetURL(id)
+	storedURL, ok := us.URLRepository.GetURL(id)
 
 	if !ok {
 		http.Error(w, "NotFound", http.StatusNotFound)
@@ -123,12 +123,10 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 	} else if storedURL.IsDeleted {
 		w.WriteHeader(http.StatusGone)
 	}
-
-	return
 }
 
 func (us *URLShortener) PingHandler(w http.ResponseWriter, r *http.Request) {
-	ok := us.UrlRepository.Ping()
+	ok := us.URLRepository.Ping()
 
 	if ok {
 		w.WriteHeader(http.StatusOK)
@@ -228,7 +226,7 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 		dataStorageRows = append(dataStorageRows, dataStorageRow)
 
 		if len(responseBodyBatch) == 1000 {
-			err = us.UrlRepository.SaveBatch(dataStorageRows)
+			err = us.URLRepository.SaveBatch(dataStorageRows)
 			log.Printf("ERROR = %v", err)
 
 			if err != nil {
@@ -237,12 +235,12 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 			}
 
 			dataStorageRows = dataStorageRows[:0]
-			us.UrlRepository.Save(shortKey, requestBodyRow.OriginalURL, us.CookieManager.GetActualCookieValue())
+			us.URLRepository.Save(shortKey, requestBodyRow.OriginalURL, us.CookieManager.GetActualCookieValue())
 		}
 	}
 
 	if len(dataStorageRows) > 0 {
-		err = us.UrlRepository.SaveBatch(dataStorageRows)
+		err = us.URLRepository.SaveBatch(dataStorageRows)
 		log.Printf("ERROR = %v", err)
 
 		if err != nil {
@@ -282,7 +280,7 @@ func (us *URLShortener) GetUserUrls(w http.ResponseWriter, r *http.Request) {
 }
 
 func (us *URLShortener) saveBatch(w http.ResponseWriter, dataStorageRows []storage.DataStorageRow) error {
-	err := us.UrlRepository.SaveBatch(dataStorageRows)
+	err := us.URLRepository.SaveBatch(dataStorageRows)
 
 	if err != nil {
 		return fmt.Errorf("ServerAddress is required")
@@ -329,14 +327,14 @@ func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (us *URLShortener) getShortKey(postURL string) (string, error) {
-	shortKey, err := us.UrlRepository.GetShortURL(postURL)
+	shortKey, err := us.URLRepository.GetShortURL(postURL)
 
 	if err == nil {
 		return shortKey, ErrShortURLExists
 	}
 
 	shortKey = generateShortKey()
-	err = us.UrlRepository.Save(shortKey, postURL, us.CookieManager.GetActualCookieValue())
+	err = us.URLRepository.Save(shortKey, postURL, us.CookieManager.GetActualCookieValue())
 
 	if err != nil {
 		return "", err

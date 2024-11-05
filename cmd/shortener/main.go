@@ -68,7 +68,7 @@ func main() {
 
 	shortenerInstance = &shortener.URLShortener{
 		UserRepository: userRepository,
-		UrlRepository:  urlRepository,
+		URLRepository:  urlRepository,
 		ServerAddress:  cfg.ServerAddress,
 		BaseURL:        cfg.BaseURL,
 		CookieManager:  &cookieManager,

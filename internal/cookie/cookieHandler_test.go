@@ -72,6 +72,7 @@ func TestCookieHandler_NewUserCreated(t *testing.T) {
 
 	// Assert
 	res := recorder.Result()
+	defer res.Body.Close()
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	// Проверка, что пользователь сохранен и новая кука установлена
@@ -101,6 +102,7 @@ func TestCookieHandler_ExistingUser(t *testing.T) {
 
 	// Assert
 	res := recorder.Result()
+	defer res.Body.Close()
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	// Проверка, что метод IsUserExist был вызван
@@ -127,6 +129,7 @@ func TestCookieHandler_InvalidCookie(t *testing.T) {
 
 	// Assert
 	res := recorder.Result()
+	defer res.Body.Close()
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 
 	// Проверка, что метод SaveUser был вызван для нового пользователя

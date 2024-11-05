@@ -17,49 +17,49 @@ import (
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 )
 
-// MockUrlRepository - мок для URLRepositoryInterface.
-type MockUrlRepository struct {
+// MockURLRepository - мок для URLRepositoryInterface.
+type MockURLRepository struct {
 	mock.Mock
 }
 
 // GetURL - реализует метод интерфейса URLRepositoryInterface.
-func (m *MockUrlRepository) GetURL(shortURL string) (storage.GetURLRow, bool) {
+func (m *MockURLRepository) GetURL(shortURL string) (storage.GetURLRow, bool) {
 	args := m.Called(shortURL)
 	return args.Get(0).(storage.GetURLRow), args.Bool(1)
 }
 
 // GetURLCount - реализует метод интерфейса URLRepositoryInterface.
-func (m *MockUrlRepository) GetURLCount() int {
+func (m *MockURLRepository) GetURLCount() int {
 	args := m.Called()
 	return args.Int(0)
 }
 
 // GetShortURL - реализует метод интерфейса URLRepositoryInterface.
-func (m *MockUrlRepository) GetShortURL(URL string) (string, error) {
+func (m *MockURLRepository) GetShortURL(URL string) (string, error) {
 	args := m.Called(URL)
 	return args.String(0), args.Error(1)
 }
 
 // Save - реализует метод интерфейса URLRepositoryInterface.
-func (m *MockUrlRepository) Save(ShortURL string, URL string, userID string) error {
+func (m *MockURLRepository) Save(ShortURL string, URL string, userID string) error {
 	args := m.Called(ShortURL, URL, userID)
 	return args.Error(0)
 }
 
 // LoadData - реализует метод интерфейса URLRepositoryInterface.
-func (m *MockUrlRepository) LoadData() ([]storage.DataStorageRow, error) {
+func (m *MockURLRepository) LoadData() ([]storage.DataStorageRow, error) {
 	args := m.Called()
 	return args.Get(0).([]storage.DataStorageRow), args.Error(1)
 }
 
 // Ping - реализует метод интерфейса URLRepositoryInterface.
-func (m *MockUrlRepository) Ping() bool {
+func (m *MockURLRepository) Ping() bool {
 	args := m.Called()
 	return args.Bool(0)
 }
 
 // SaveBatch - реализует метод интерфейса URLRepositoryInterface.
-func (m *MockUrlRepository) SaveBatch(dataStorageRows []storage.DataStorageRow) error {
+func (m *MockURLRepository) SaveBatch(dataStorageRows []storage.DataStorageRow) error {
 	args := m.Called(dataStorageRows)
 	return args.Error(0)
 }
@@ -197,8 +197,8 @@ func TestWorker_ErrorDuringDeletion(t *testing.T) {
 }
 
 func TestGetHandler_URLNotFound(t *testing.T) {
-	mockRepo := new(MockUrlRepository)
-	us := &URLShortener{UrlRepository: mockRepo}
+	mockRepo := new(MockURLRepository)
+	us := &URLShortener{URLRepository: mockRepo}
 
 	req := httptest.NewRequest("GET", "/url/unknownID", nil)
 	w := httptest.NewRecorder()
@@ -208,13 +208,14 @@ func TestGetHandler_URLNotFound(t *testing.T) {
 	us.GetHandler(w, req)
 
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusNotFound, res.StatusCode)
 	mockRepo.AssertExpectations(t)
 }
 
 func TestGetHandler_URLExists(t *testing.T) {
-	mockRepo := new(MockUrlRepository)
-	us := &URLShortener{UrlRepository: mockRepo}
+	mockRepo := new(MockURLRepository)
+	us := &URLShortener{URLRepository: mockRepo}
 
 	req := httptest.NewRequest("GET", "/url/knownID", nil)
 	w := httptest.NewRecorder()
@@ -228,14 +229,15 @@ func TestGetHandler_URLExists(t *testing.T) {
 
 	// Assert
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusTemporaryRedirect, res.StatusCode)
 	assert.Equal(t, expectedURL, w.Header().Get("Location"))
 	mockRepo.AssertExpectations(t)
 }
 
 func TestGetHandler_URLIsDeleted(t *testing.T) {
-	mockRepo := new(MockUrlRepository)
-	us := &URLShortener{UrlRepository: mockRepo}
+	mockRepo := new(MockURLRepository)
+	us := &URLShortener{URLRepository: mockRepo}
 
 	req := httptest.NewRequest("GET", "/url/deletedID", nil)
 	w := httptest.NewRecorder()
@@ -246,13 +248,14 @@ func TestGetHandler_URLIsDeleted(t *testing.T) {
 	us.GetHandler(w, req)
 
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusGone, res.StatusCode)
 	mockRepo.AssertExpectations(t)
 }
 
 func TestPingHandler_SuccessfulConnection(t *testing.T) {
-	mockRepo := new(MockUrlRepository)
-	us := &URLShortener{UrlRepository: mockRepo}
+	mockRepo := new(MockURLRepository)
+	us := &URLShortener{URLRepository: mockRepo}
 
 	req := httptest.NewRequest("GET", "/ping", nil)
 	w := httptest.NewRecorder()
@@ -262,13 +265,14 @@ func TestPingHandler_SuccessfulConnection(t *testing.T) {
 	us.PingHandler(w, req)
 
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusOK, res.StatusCode)
 	mockRepo.AssertExpectations(t)
 }
 
 func TestPingHandler_ConnectionError(t *testing.T) {
-	mockRepo := new(MockUrlRepository)
-	us := &URLShortener{UrlRepository: mockRepo}
+	mockRepo := new(MockURLRepository)
+	us := &URLShortener{URLRepository: mockRepo}
 
 	req := httptest.NewRequest("GET", "/ping", nil)
 	w := httptest.NewRecorder()
@@ -278,6 +282,7 @@ func TestPingHandler_ConnectionError(t *testing.T) {
 	us.PingHandler(w, req)
 
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
 	mockRepo.AssertExpectations(t)
 }
@@ -325,10 +330,10 @@ func (m *MockURLShortener) Worker() {
 }
 
 func TestJSONPostHandler_Success(t *testing.T) {
-	mockRepo := new(MockUrlRepository)
+	mockRepo := new(MockURLRepository)
 	mockCookieManager := new(MockCookieManager)
 	us := &URLShortener{
-		UrlRepository: mockRepo,
+		URLRepository: mockRepo,
 		CookieManager: mockCookieManager,
 		BaseURL:       "http://short.url/",
 	}
@@ -350,6 +355,7 @@ func TestJSONPostHandler_Success(t *testing.T) {
 
 	// Assert
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusCreated, res.StatusCode)
 
 	var responseBody JSONResponseBody
@@ -365,10 +371,10 @@ func (m *mockReader) Read(p []byte) (n int, err error) {
 }
 
 func TestJSONPostHandler_BadRequest(t *testing.T) {
-	mockRepo := new(MockUrlRepository)
+	mockRepo := new(MockURLRepository)
 	mockCookieManager := new(MockCookieManager)
 	us := &URLShortener{
-		UrlRepository: mockRepo,
+		URLRepository: mockRepo,
 		CookieManager: mockCookieManager,
 		BaseURL:       "http://short.url/",
 	}
@@ -380,14 +386,15 @@ func TestJSONPostHandler_BadRequest(t *testing.T) {
 
 	// Assert
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
 
 func TestJSONPostHandler_JSONUnmarshalError(t *testing.T) {
-	mockRepo := new(MockUrlRepository)
+	mockRepo := new(MockURLRepository)
 	mockCookieManager := new(MockCookieManager)
 	us := &URLShortener{
-		UrlRepository: mockRepo,
+		URLRepository: mockRepo,
 		CookieManager: mockCookieManager,
 		BaseURL:       "http://short.url/",
 	}
@@ -401,13 +408,14 @@ func TestJSONPostHandler_JSONUnmarshalError(t *testing.T) {
 
 	// Assert
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
 
 func TestJSONPostHandler_InvalidURL(t *testing.T) {
-	mockRepo := new(MockUrlRepository)
+	mockRepo := new(MockURLRepository)
 	us := &URLShortener{
-		UrlRepository: mockRepo,
+		URLRepository: mockRepo,
 	}
 
 	requestBody := RequestBody{URL: "invalid-url"}
@@ -422,14 +430,15 @@ func TestJSONPostHandler_InvalidURL(t *testing.T) {
 
 	// Assert
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 }
 
 func TestJSONPostHandler_InternalServerErrorOnSave(t *testing.T) {
-	mockRepo := new(MockUrlRepository)
+	mockRepo := new(MockURLRepository)
 	mockCookieManager := new(MockCookieManager)
 	us := &URLShortener{
-		UrlRepository: mockRepo,
+		URLRepository: mockRepo,
 		CookieManager: mockCookieManager,
 		BaseURL:       "http://short.url/",
 	}
@@ -451,14 +460,15 @@ func TestJSONPostHandler_InternalServerErrorOnSave(t *testing.T) {
 
 	// Assert
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusInternalServerError, res.StatusCode)
 }
 
 func TestJSONBatchHandler_Success(t *testing.T) {
-	mockRepo := new(MockUrlRepository)
+	mockRepo := new(MockURLRepository)
 	mockCookieManager := new(MockCookieManager)
 	us := &URLShortener{
-		UrlRepository: mockRepo,
+		URLRepository: mockRepo,
 		CookieManager: mockCookieManager,
 		BaseURL:       "http://short.url/",
 	}
@@ -497,6 +507,7 @@ func TestJSONBatchHandler_ReadError(t *testing.T) {
 	us.JSONBatchHandler(w, req)
 
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode) // Ожидаем 400 Bad Request
 }
 
@@ -510,14 +521,15 @@ func TestJSONBatchHandler_JSONUnmarshalError(t *testing.T) {
 	us.JSONBatchHandler(w, req)
 
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode) // Ожидаем 400 Bad Request
 }
 
 func TestJSONBatchHandler_ErrorOnGetShortURL(t *testing.T) {
-	mockRepo := new(MockUrlRepository)
+	mockRepo := new(MockURLRepository)
 	mockCookieManager := new(MockCookieManager)
 	us := &URLShortener{
-		UrlRepository: mockRepo,
+		URLRepository: mockRepo,
 		CookieManager: mockCookieManager,
 		BaseURL:       "http://short.url/",
 	}
@@ -545,10 +557,10 @@ func TestJSONBatchHandler_ErrorOnGetShortURL(t *testing.T) {
 }
 
 func TestJSONBatchHandler_ErrorOnSaveBatch(t *testing.T) {
-	mockRepo := new(MockUrlRepository)
+	mockRepo := new(MockURLRepository)
 	mockCookieManager := new(MockCookieManager)
 	us := &URLShortener{
-		UrlRepository: mockRepo,
+		URLRepository: mockRepo,
 		CookieManager: mockCookieManager,
 		BaseURL:       "http://short.url/",
 	}
@@ -602,6 +614,7 @@ func TestGetUserUrls_Success(t *testing.T) {
 
 	// Assert
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusOK, res.StatusCode) // Ожидаем статус 200 OK
 
 	var responseBody []storage.UserUrlsResponseBodyItem
@@ -630,6 +643,7 @@ func TestGetUserUrls_Error(t *testing.T) {
 	us.GetUserUrls(w, req)
 
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusInternalServerError, res.StatusCode) // Ожидаем статус 500 Internal Server Error
 
 	mockRepo.AssertExpectations(t)
@@ -654,6 +668,7 @@ func TestGetUserUrls_NoContent(t *testing.T) {
 	us.GetUserUrls(w, req)
 
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusNoContent, res.StatusCode) // Ожидаем статус 204 No Content
 
 	mockRepo.AssertExpectations(t)
@@ -661,11 +676,11 @@ func TestGetUserUrls_NoContent(t *testing.T) {
 }
 
 func TestPostHandler_Success(t *testing.T) {
-	mockRepo := new(MockUrlRepository)
+	mockRepo := new(MockURLRepository)
 	mockCookieManager := new(MockCookieManager)
 	us := &URLShortener{
 		CookieManager: mockCookieManager,
-		UrlRepository: mockRepo,
+		URLRepository: mockRepo,
 		BaseURL:       "http://short.url/",
 	}
 
@@ -684,6 +699,7 @@ func TestPostHandler_Success(t *testing.T) {
 
 	// Assert
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusCreated, res.StatusCode)
 
 	var responseBody JSONResponseBody
@@ -704,6 +720,7 @@ func TestPostHandler_ReadError(t *testing.T) {
 
 	// Assert
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode) // Ожидаем 400 Bad Request
 }
 
@@ -721,6 +738,7 @@ func TestPostHandler_InvalidURL(t *testing.T) {
 
 	// Assert
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode) // Ожидаем 400 Bad Request
 }
 
@@ -826,6 +844,7 @@ func TestDeleteUserUrls_Success(t *testing.T) {
 
 	// Assert
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusAccepted, res.StatusCode) // Ожидаем статус 202 Accepted
 
 	// Проверяем, что короткие URL отправлены в канал RemoveChan
@@ -851,6 +870,7 @@ func TestDeleteUserUrls_JSONDecodeError(t *testing.T) {
 
 	// Assert
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode) // Ожидаем статус 400 Bad Request
 }
 
@@ -867,5 +887,6 @@ func TestDeleteUserUrls_EmptyBody(t *testing.T) {
 
 	// Assert
 	res := w.Result()
+	res.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode) // Ожидаем статус 400 Bad Request
 }
