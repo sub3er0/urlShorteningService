@@ -229,6 +229,7 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 
 		if len(responseBodyBatch) == 1000 {
 			err = us.UrlRepository.SaveBatch(dataStorageRows)
+			log.Printf("ERROR = %v", err)
 
 			if err != nil {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -241,6 +242,7 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 
 	if len(dataStorageRows) > 0 {
 		err = us.UrlRepository.SaveBatch(dataStorageRows)
+		log.Printf("ERROR = %v", err)
 
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
