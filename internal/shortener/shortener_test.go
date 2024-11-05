@@ -290,7 +290,7 @@ func TestPingHandler_ConnectionError(t *testing.T) {
 // MockURLShortener - мок для интерфейса URLShortenerInterface
 type MockURLShortener struct {
 	mock.Mock
-	UrlRepository repository.URLRepositoryInterface
+	URLRepository repository.URLRepositoryInterface
 	BaseURL       string
 }
 
@@ -495,6 +495,7 @@ func TestJSONBatchHandler_Success(t *testing.T) {
 
 	// Assert
 	assert.Equal(t, http.StatusCreated, w.Result().StatusCode)
+	w.Result().Body.Close()
 	mockRepo.AssertExpectations(t)
 }
 
@@ -554,6 +555,7 @@ func TestJSONBatchHandler_ErrorOnGetShortURL(t *testing.T) {
 
 	// Assert
 	assert.Equal(t, http.StatusCreated, w.Result().StatusCode) // Ожидаем 201
+	w.Result().Body.Close()
 }
 
 func TestJSONBatchHandler_ErrorOnSaveBatch(t *testing.T) {
@@ -584,6 +586,7 @@ func TestJSONBatchHandler_ErrorOnSaveBatch(t *testing.T) {
 	us.JSONBatchHandler(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Result().StatusCode) // Ожидаем 500
+	w.Result().Body.Close()
 }
 
 // Тест успешно получения URLs пользователя
