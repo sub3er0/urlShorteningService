@@ -26,6 +26,7 @@ func TestAuthMiddleware_MissingCookie(t *testing.T) {
 	// Assert
 	res := w.Result()
 	assert.Equal(t, http.StatusUnauthorized, res.StatusCode) // Ожидаем статус 401 Unauthorized
+	res.Close = true
 }
 
 func TestAuthMiddleware_InvalidCookie(t *testing.T) {

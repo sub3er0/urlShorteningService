@@ -17,48 +17,48 @@ import (
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 )
 
-// MockUrlRepository - мок для UrlRepositoryInterface.
+// MockUrlRepository - мок для URLRepositoryInterface.
 type MockUrlRepository struct {
 	mock.Mock
 }
 
-// GetURL - реализует метод интерфейса UrlRepositoryInterface.
+// GetURL - реализует метод интерфейса URLRepositoryInterface.
 func (m *MockUrlRepository) GetURL(shortURL string) (storage.GetURLRow, bool) {
 	args := m.Called(shortURL)
 	return args.Get(0).(storage.GetURLRow), args.Bool(1)
 }
 
-// GetURLCount - реализует метод интерфейса UrlRepositoryInterface.
+// GetURLCount - реализует метод интерфейса URLRepositoryInterface.
 func (m *MockUrlRepository) GetURLCount() int {
 	args := m.Called()
 	return args.Int(0)
 }
 
-// GetShortURL - реализует метод интерфейса UrlRepositoryInterface.
+// GetShortURL - реализует метод интерфейса URLRepositoryInterface.
 func (m *MockUrlRepository) GetShortURL(URL string) (string, error) {
 	args := m.Called(URL)
 	return args.String(0), args.Error(1)
 }
 
-// Save - реализует метод интерфейса UrlRepositoryInterface.
+// Save - реализует метод интерфейса URLRepositoryInterface.
 func (m *MockUrlRepository) Save(ShortURL string, URL string, userID string) error {
 	args := m.Called(ShortURL, URL, userID)
 	return args.Error(0)
 }
 
-// LoadData - реализует метод интерфейса UrlRepositoryInterface.
+// LoadData - реализует метод интерфейса URLRepositoryInterface.
 func (m *MockUrlRepository) LoadData() ([]storage.DataStorageRow, error) {
 	args := m.Called()
 	return args.Get(0).([]storage.DataStorageRow), args.Error(1)
 }
 
-// Ping - реализует метод интерфейса UrlRepositoryInterface.
+// Ping - реализует метод интерфейса URLRepositoryInterface.
 func (m *MockUrlRepository) Ping() bool {
 	args := m.Called()
 	return args.Bool(0)
 }
 
-// SaveBatch - реализует метод интерфейса UrlRepositoryInterface.
+// SaveBatch - реализует метод интерфейса URLRepositoryInterface.
 func (m *MockUrlRepository) SaveBatch(dataStorageRows []storage.DataStorageRow) error {
 	args := m.Called(dataStorageRows)
 	return args.Error(0)
@@ -285,7 +285,7 @@ func TestPingHandler_ConnectionError(t *testing.T) {
 // MockURLShortener - мок для интерфейса URLShortenerInterface
 type MockURLShortener struct {
 	mock.Mock
-	UrlRepository repository.UrlRepositoryInterface
+	UrlRepository repository.URLRepositoryInterface
 	BaseURL       string
 }
 

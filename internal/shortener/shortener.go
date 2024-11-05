@@ -18,7 +18,7 @@ import (
 
 // URLShortener Структура URLShortener, использующая интерфейс хранения
 type URLShortener struct {
-	UrlRepository  repository.UrlRepositoryInterface
+	UrlRepository  repository.URLRepositoryInterface
 	UserRepository repository.UserRepositoryInterface
 	ServerAddress  string
 	BaseURL        string

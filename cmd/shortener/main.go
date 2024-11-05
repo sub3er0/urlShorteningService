@@ -63,11 +63,8 @@ func main() {
 		Storage: dataUsersStorage,
 	}
 
-	var userRepository repository.UserRepositoryInterface
-	var urlRepository repository.UrlRepositoryInterface
-
-	urlRepository = &repository.UrlRepository{Storage: dataUrlsStorage}
-	userRepository = &repository.UserRepository{Storage: dataUsersStorage}
+	var urlRepository = &repository.URLRepository{Storage: dataUrlsStorage}
+	var userRepository = &repository.UserRepository{Storage: dataUsersStorage}
 
 	shortenerInstance = &shortener.URLShortener{
 		UserRepository: userRepository,
