@@ -37,16 +37,10 @@ func main() {
 			log.Fatalf("Failed to connect database: %v", err)
 		}
 
-		err = db.AutoMigrate(&storage.URL{})
+		err = db.AutoMigrate(&storage.URL{}, &storage.UserCookie{})
 
 		if err != nil {
-			log.Fatalf("Failed to connect database: %v", err)
-		}
-
-		err = db.AutoMigrate(&storage.UserCookie{})
-
-		if err != nil {
-			log.Fatalf("Failed to connect database: %v", err)
+			log.Fatalf("Failed to migrate database: %v", err)
 		}
 
 		dataUrlsStorage = &storage.URLStorage{}
