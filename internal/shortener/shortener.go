@@ -233,6 +233,7 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 
 			if err != nil {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
 			}
 
 			dataStorageRows = dataStorageRows[:0]
@@ -246,6 +247,7 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
 		}
 	}
 
