@@ -1,6 +1,7 @@
 package cookie
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -25,8 +26,15 @@ func TestAuthMiddleware_MissingCookie(t *testing.T) {
 
 	// Assert
 	res := w.Result()
+
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(res.Body)
+
 	assert.Equal(t, http.StatusUnauthorized, res.StatusCode) // Ожидаем статус 401 Unauthorized
-	res.Close = true
 }
 
 func TestAuthMiddleware_InvalidCookie(t *testing.T) {
@@ -49,6 +57,14 @@ func TestAuthMiddleware_InvalidCookie(t *testing.T) {
 
 	// Assert
 	res := w.Result()
+
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(res.Body)
+
 	assert.Equal(t, http.StatusUnauthorized, res.StatusCode) // Ожидаем статус 401 Unauthorized
 }
 
@@ -75,6 +91,14 @@ func TestAuthMiddleware_UserNotExists(t *testing.T) {
 
 	// Assert
 	res := w.Result()
+
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(res.Body)
+
 	assert.Equal(t, http.StatusUnauthorized, res.StatusCode) // Ожидаем статус 401 Unauthorized
 
 	// Проверка ожиданий
@@ -104,6 +128,14 @@ func TestAuthMiddleware_Success(t *testing.T) {
 
 	// Assert
 	res := w.Result()
+
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+
+		}
+	}(res.Body)
+
 	assert.Equal(t, http.StatusOK, res.StatusCode) // Ожидаем статус 200 OK
 
 	// Проверка ожиданий
