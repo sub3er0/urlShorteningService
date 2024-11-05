@@ -53,6 +53,9 @@ type URLShortenerInterface interface {
 	// JSONPostHandler Обрабатывает запрос на создание короткого URL в формате JSON
 	JSONPostHandler(w http.ResponseWriter, r *http.Request)
 
+	// PostHandler Обрабатывает запрос на создание короткого URL
+	PostHandler(w http.ResponseWriter, r *http.Request)
+
 	// JSONBatchHandler Обрабатывает пакетные запросы на создание сокращенных URL
 	JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 
