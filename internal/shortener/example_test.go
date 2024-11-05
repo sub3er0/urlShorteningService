@@ -20,6 +20,7 @@ func ExampleURLShortener_PostHandler() {
 	us.PostHandler(w, req) // Вызов метода для создания короткого URL.
 
 	res := w.Result()
+	defer res.Body.Close()
 	jsonResponse, _ := json.Marshal(res) // Преобразование результата в JSON.
 
 	// В этом примере нам нужно проверить содержимое jsonResponse
@@ -37,6 +38,7 @@ func ExampleURLShortener_GetHandler() {
 	us.GetHandler(w, req)
 
 	res := w.Result()
+	defer res.Body.Close()
 	fmt.Printf("URL Status: %d", res.StatusCode) // Печатаем статус ответа
 }
 
@@ -53,6 +55,7 @@ func ExampleURLShortener_JSONPostHandler() {
 	us.JSONPostHandler(w, req)
 
 	res := w.Result()
+	defer res.Body.Close()
 	fmt.Printf("Response: %v", res)
 }
 
@@ -66,6 +69,7 @@ func ExampleURLShortener_PingHandler() {
 	us.PingHandler(w, req)
 
 	res := w.Result()
+	defer res.Body.Close()
 	println("Ping Response Status:", res.Status)
 }
 
@@ -88,5 +92,6 @@ func ExampleURLShortener_JSONBatchHandler() {
 	us.JSONBatchHandler(w, req)
 
 	res := w.Result()
+	defer res.Body.Close()
 	println("Batch Response Status:", res.Status)
 }
