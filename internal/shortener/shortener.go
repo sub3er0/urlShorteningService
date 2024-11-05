@@ -2,6 +2,7 @@ package shortener
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"math/rand"
@@ -227,14 +228,23 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 		dataStorageRows = append(dataStorageRows, dataStorageRow)
 
 		if len(responseBodyBatch) == 1000 {
-			us.saveBatch(w, dataStorageRows)
+			err = us.UrlRepository.SaveBatch(dataStorageRows)
+
+			if err != nil {
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			}
+
 			dataStorageRows = dataStorageRows[:0]
 			us.UrlRepository.Save(shortKey, requestBodyRow.OriginalURL, us.CookieManager.GetActualCookieValue())
 		}
 	}
 
 	if len(dataStorageRows) > 0 {
-		us.saveBatch(w, dataStorageRows)
+		err = us.UrlRepository.SaveBatch(dataStorageRows)
+
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		}
 	}
 
 	err = us.buildJSONBatchResponse(w, responseBodyBatch)
@@ -267,12 +277,14 @@ func (us *URLShortener) GetUserUrls(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (us *URLShortener) saveBatch(w http.ResponseWriter, dataStorageRows []storage.DataStorageRow) {
+func (us *URLShortener) saveBatch(w http.ResponseWriter, dataStorageRows []storage.DataStorageRow) error {
 	err := us.UrlRepository.SaveBatch(dataStorageRows)
 
 	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return fmt.Errorf("ServerAddress is required")
 	}
+
+	return nil
 }
 
 func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
