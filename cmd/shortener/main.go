@@ -13,8 +13,6 @@ import (
 	"github.com/sub3er0/urlShorteningService/internal/shortener"
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"go.uber.org/zap"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
 var shortenerInstance *shortener.URLShortener
@@ -30,18 +28,21 @@ func main() {
 	var dataUsersStorage storage.UserStorageInterface
 
 	if cfg.DatabaseDsn != "" {
-		dsn := cfg.DatabaseDsn
-		db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-
-		if err != nil {
-			log.Fatalf("Failed to connect database: %v", err)
-		}
-
-		err = db.AutoMigrate(&storage.URL{}, &storage.UserCookie{})
-
-		if err != nil {
-			log.Fatalf("Failed to migrate database: %v", err)
-		}
+		//dsn := cfg.DatabaseDsn
+		//db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+		//
+		//if err != nil {
+		//	log.Fatalf("Failed to connect database: %v", err)
+		//}
+		//
+		//err = db.AutoMigrate(&storage.URL{}, &storage.UserCookie{})
+		//
+		//if err != nil {
+		//	log.Fatalf("Failed to migrate database: %v", err)
+		//}
+		defaultStorage := &storage.DefaultStorage{}
+		defaultStorage.Init(cfg.DatabaseDsn)
+		defer defaultStorage.Close()
 
 		dataUrlsStorage = &storage.URLStorage{}
 		dataUrlsStorage.Init(cfg.DatabaseDsn)

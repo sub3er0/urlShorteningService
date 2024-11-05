@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgx/v4"
 )
@@ -32,10 +31,3 @@ type DBConnectionInterface interface {
 	Close()
 	SendBatch(ctx context.Context, b *pgx.Batch) pgx.BatchResults
 }
-
-//// Rows - интерфейс для обработки возвращаемых строк запроса.
-//type Rows interface {
-//	Next() bool                     // Метод для перехода к следующей строке
-//	Scan(dest ...interface{}) error // Метод для сканирования текущей строки
-//	Close() error                   // Метод закрытия результатов
-//}
