@@ -1,9 +1,6 @@
 package main
 
 import (
-	"log"
-	"net/http"
-
 	"github.com/go-chi/chi/v5"
 	"github.com/sub3er0/urlShorteningService/internal/config"
 	"github.com/sub3er0/urlShorteningService/internal/cookie"
@@ -13,6 +10,8 @@ import (
 	"github.com/sub3er0/urlShorteningService/internal/shortener"
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"go.uber.org/zap"
+	"log"
+	"net/http"
 )
 
 var shortenerInstance *shortener.URLShortener
@@ -28,18 +27,6 @@ func main() {
 	var dataUsersStorage storage.UserStorageInterface
 
 	if cfg.DatabaseDsn != "" {
-		//dsn := cfg.DatabaseDsn
-		//db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-		//
-		//if err != nil {
-		//	log.Fatalf("Failed to connect database: %v", err)
-		//}
-		//
-		//err = db.AutoMigrate(&storage.URL{}, &storage.UserCookie{})
-		//
-		//if err != nil {
-		//	log.Fatalf("Failed to migrate database: %v", err)
-		//}
 		defaultStorage := &storage.DefaultStorage{}
 		defaultStorage.Init(cfg.DatabaseDsn)
 		defer defaultStorage.Close()

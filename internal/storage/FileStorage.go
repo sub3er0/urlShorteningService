@@ -143,20 +143,20 @@ func (fs *FileStorage) GetShortURL(URL string) (string, error) {
 	var dataStorageRow DataStorageRow
 
 	for {
-		data, err := reader.ReadBytes('\n')
+		data, readError := reader.ReadBytes('\n')
 
-		if err == io.EOF {
+		if readError == io.EOF {
 			break
 		}
 
-		if err != nil {
-			return "", err
+		if readError != nil {
+			return "", readError
 		}
 
-		err = json.Unmarshal(data, &dataStorageRow)
+		readError = json.Unmarshal(data, &dataStorageRow)
 
-		if err != nil {
-			return "", err
+		if readError != nil {
+			return "", readError
 		}
 
 		if dataStorageRow.URL == URL {
