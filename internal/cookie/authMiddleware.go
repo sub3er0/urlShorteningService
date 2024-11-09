@@ -4,6 +4,8 @@ import (
 	"net/http"
 )
 
+// AuthMiddleware оборачивает HTTP-обработчик для проверки аутентификации пользователя.
+// Этот мидлвар проверяет наличие куки с именем user_info и ее валидность.
 func (cm *CookieManager) AuthMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(cookieName)

@@ -1,16 +1,18 @@
 package main
 
 import (
+	"log"
+	"net/http"
+
 	"github.com/go-chi/chi/v5"
 	"github.com/sub3er0/urlShorteningService/internal/config"
 	"github.com/sub3er0/urlShorteningService/internal/cookie"
 	"github.com/sub3er0/urlShorteningService/internal/gzip"
 	"github.com/sub3er0/urlShorteningService/internal/logger"
+	"github.com/sub3er0/urlShorteningService/internal/repository"
 	"github.com/sub3er0/urlShorteningService/internal/shortener"
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"go.uber.org/zap"
-	"log"
-	"net/http"
 )
 
 var shortenerInstance *shortener.URLShortener
@@ -22,29 +24,55 @@ func main() {
 		log.Fatalf("Error while initializing config: %v", err)
 	}
 
-	var dataStorage storage.URLStorage
+	var dataUrlsStorage storage.URLStorageInterface
+	var dataUsersStorage storage.UserStorageInterface
 
 	if cfg.DatabaseDsn != "" {
-		pgStorage := &storage.PgStorage{}
-		pgStorage.Init(cfg.DatabaseDsn)
-		defer pgStorage.Close()
-		dataStorage = pgStorage
+		//dsn := cfg.DatabaseDsn
+		//db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+		//
+		//if err != nil {
+		//	log.Fatalf("Failed to connect database: %v", err)
+		//}
+		//
+		//err = db.AutoMigrate(&storage.URL{}, &storage.UserCookie{})
+		//
+		//if err != nil {
+		//	log.Fatalf("Failed to migrate database: %v", err)
+		//}
+		defaultStorage := &storage.DefaultStorage{}
+		defaultStorage.Init(cfg.DatabaseDsn)
+		defer defaultStorage.Close()
+
+		dataUrlsStorage = &storage.URLStorage{}
+		dataUrlsStorage.Init(cfg.DatabaseDsn)
+		defer dataUrlsStorage.Close()
+
+		dataUsersStorage = &storage.UsersStorage{}
+		dataUsersStorage.Init(cfg.DatabaseDsn)
+		defer dataUsersStorage.Close()
 	} else if cfg.FileStoragePath != "" {
-		dataStorage = &storage.FileStorage{FileStoragePath: cfg.FileStoragePath}
+		dataUrlsStorage = &storage.FileStorage{FileStoragePath: cfg.FileStoragePath}
+		dataUsersStorage = &storage.FileStorage{FileStoragePath: cfg.FileStoragePath}
 	} else {
-		dataStorage = &storage.InMemoryStorage{Urls: make(map[string]string)}
+		dataUrlsStorage = &storage.InMemoryStorage{Urls: make(map[string]string)}
+		dataUsersStorage = &storage.InMemoryStorage{Urls: make(map[string]string)}
 	}
 
 	cookieManager := cookie.CookieManager{
-		Storage: dataStorage,
+		Storage: dataUsersStorage,
 	}
 
+	var urlRepository = &repository.URLRepository{Storage: dataUrlsStorage}
+	var userRepository = &repository.UserRepository{Storage: dataUsersStorage}
+
 	shortenerInstance = &shortener.URLShortener{
-		Storage:       dataStorage,
-		ServerAddress: cfg.ServerAddress,
-		BaseURL:       cfg.BaseURL,
-		CookieManager: &cookieManager,
-		RemoveChan:    make(chan string),
+		UserRepository: userRepository,
+		URLRepository:  urlRepository,
+		ServerAddress:  cfg.ServerAddress,
+		BaseURL:        cfg.BaseURL,
+		CookieManager:  &cookieManager,
+		RemoveChan:     make(chan string),
 	}
 
 	go shortenerInstance.Worker()

@@ -2,65 +2,125 @@ package shortener
 
 import (
 	"encoding/json"
-	"github.com/pkg/errors"
-	"github.com/sub3er0/urlShorteningService/internal/cookie"
-	"github.com/sub3er0/urlShorteningService/internal/storage"
+	"fmt"
 	"io"
 	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
 	"sync"
+
+	"github.com/pkg/errors"
+	"github.com/sub3er0/urlShorteningService/internal/cookie"
+	"github.com/sub3er0/urlShorteningService/internal/repository"
+	"github.com/sub3er0/urlShorteningService/internal/storage"
 )
 
-// URLShortener Структура URLShortener, использующая интерфейс хранения
+// URLShortener представляет структуру, ответственную за обработку
+// запросов на создание коротких URL и управление взаимодействиями с
+// хранилищами URL и пользователей.
 type URLShortener struct {
-	Storage       storage.URLStorage
+	// URLRepository предоставляет доступ к операциям работы с URL в хранилище.
+	URLRepository repository.URLRepositoryInterface
+
+	// UserRepository предоставляет доступ к операциям работы с пользователями в хранилище.
+	UserRepository repository.UserRepositoryInterface
+
+	// ServerAddress определяет адрес HTTP-сервера, на котором будет работать приложение.
 	ServerAddress string
-	BaseURL       string
-	CookieManager *cookie.CookieManager
-	RemoveChan    chan string
-	wg            sync.WaitGroup
+
+	// BaseURL представляет базовый адрес, который используется для сокращённых URL.
+	BaseURL string
+
+	// CookieManager управляет аутентификацией и обработкой куки в приложении.
+	CookieManager cookie.CookieManagerInterface
+
+	// RemoveChan — это канал, который используется для передачи коротких URL, которые нужно удалить.
+	RemoveChan chan string
+
+	// wg используется для управления ожидающими горутинами.
+	wg sync.WaitGroup
 }
 
+// URLShortenerInterface - интерфейс для работы с сокращениями URL.
+type URLShortenerInterface interface {
+	// GetHandler Получает короткий URL из репозитория
+	GetHandler(w http.ResponseWriter, r *http.Request)
+
+	// PingHandler Проверяет состояние соединения с репозиторием
+	PingHandler(w http.ResponseWriter, r *http.Request)
+
+	// JSONPostHandler Обрабатывает запрос на создание короткого URL в формате JSON
+	JSONPostHandler(w http.ResponseWriter, r *http.Request)
+
+	// PostHandler Обрабатывает запрос на создание короткого URL
+	PostHandler(w http.ResponseWriter, r *http.Request)
+
+	// JSONBatchHandler Обрабатывает пакетные запросы на создание сокращенных URL
+	JSONBatchHandler(w http.ResponseWriter, r *http.Request)
+
+	// GetUserUrls Получает URL пользователя
+	GetUserUrls(w http.ResponseWriter, r *http.Request)
+
+	// DeleteUserUrls Удаляет короткие URL
+	DeleteUserUrls(w http.ResponseWriter, r *http.Request)
+
+	// Worker Удаляет короткие URL
+	Worker()
+}
+
+// JSONResponseBody представляет структуру для ответа в формате JSON.
+// Включает поле Result, содержащее результат выполнения какой-либо операции.
 type JSONResponseBody struct {
-	Result string `json:"result"`
+	Result string `json:"result"` // Результат выполнения, представляет собой строку.
 }
 
+// RequestBody представляет структуру для запроса, содержащего URL.
+// Используется при получении короткого URL.
 type RequestBody struct {
-	URL string `json:"url"`
+	URL string `json:"url"` // Полный URL для сокращения.
 }
 
+// DeleteRequestBody представляет структуру для запроса на удаление короткого URL.
+// Служит для передачи данных, необходимых для операций удаления.
 type DeleteRequestBody struct {
-	ShortURL string `json:"short_url"`
+	ShortURL string `json:"short_url"` // Короткий URL, который необходимо удалить.
 }
 
+// BatchRequestBody представляет структуру для пакетных запросов на создание сокращенных URL.
+// Содержит идентификатор корреляции и оригинальный URL.
 type BatchRequestBody struct {
-	CorrelationID string `json:"correlation_id"`
-	OriginalURL   string `json:"original_url"`
+	CorrelationID string `json:"correlation_id"` // Идентификатор корреляции для отслеживания в запросах.
+	OriginalURL   string `json:"original_url"`   // Оригинальный URL, который будет сокращён.
 }
 
+// BatchResponseBodyItem представляет элемент ответа для пакетных операций по сокращению URL.
+// Содержит идентификатор корреляции и сокращенный URL.
 type BatchResponseBodyItem struct {
-	CorrelationID string `json:"correlation_id"`
-	ShortURL      string `json:"short_url"`
+	CorrelationID string `json:"correlation_id"` // Идентификатор корреляции для сопоставления с запросом.
+	ShortURL      string `json:"short_url"`      // Сокращенный URL.
 }
 
+// ExistValueError представляет пользовательскую ошибку для случаев,
+// когда значение уже существует в системе.
 type ExistValueError struct {
-	Text string
+	Text string // Сообщение об ошибке.
 }
 
+// ErrShortURLExists указывает на ошибку, возникающую при попытке сохранить
+// короткий URL, который уже существует в хранилище.
 var ErrShortURLExists = &ExistValueError{Text: "ShortURL already exists"}
 
+// Worker Удаляет короткие URL
 func (us *URLShortener) Worker() {
 	batchSize := 1
 	shortURLs := make([]string, 0, batchSize)
 
 	for urlFromChan := range us.RemoveChan {
-		log.Printf("asdfasdf")
 		shortURLs = append(shortURLs, urlFromChan)
 
 		if len(shortURLs) >= batchSize {
-			err := us.Storage.DeleteUserUrls(us.CookieManager.ActualCookieValue, shortURLs)
+			err := us.UserRepository.DeleteUserUrls(us.CookieManager.GetActualCookieValue(), shortURLs)
 			if err != nil {
 				log.Printf("Error while deleting urls")
 			}
@@ -69,24 +129,32 @@ func (us *URLShortener) Worker() {
 	}
 
 	if len(shortURLs) > 0 {
-		if err := us.Storage.DeleteUserUrls(us.CookieManager.ActualCookieValue, shortURLs); err != nil {
+		if err := us.UserRepository.DeleteUserUrls(us.CookieManager.GetActualCookieValue(), shortURLs); err != nil {
 			log.Printf("Error while deleting remaining URLs: %v", err)
 		}
 	}
 }
 
+// Error возвращает текст сообщения об ошибке в формате строки.
 func (e *ExistValueError) Error() string {
 	return e.Text
 }
 
+// getShortURL возвращает короткий URL для заданного полного URL.
+// Если в репозитории не найдено, возвращает ошибку.
+// Параметры:
+//   - URL: полный URL для получения короткого URL.
+//
+// Возвращает короткий URL и ошибку, если произошла проблема.
 func (us *URLShortener) getShortURL(URL string) (string, error) {
-	return us.Storage.GetShortURL(URL)
+	return us.URLRepository.GetShortURL(URL)
 }
 
+// GetHandler Получает короткий URL из репозитория
 func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	storedURL, ok := us.Storage.GetURL(id)
+	storedURL, ok := us.URLRepository.GetURL(id)
 
 	if !ok {
 		http.Error(w, "NotFound", http.StatusNotFound)
@@ -98,8 +166,9 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// PingHandler Проверяет состояние соединения с репозиторием
 func (us *URLShortener) PingHandler(w http.ResponseWriter, r *http.Request) {
-	ok := us.Storage.Ping()
+	ok := us.URLRepository.Ping()
 
 	if ok {
 		w.WriteHeader(http.StatusOK)
@@ -109,6 +178,7 @@ func (us *URLShortener) PingHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// JSONPostHandler Обрабатывает запрос на создание короткого URL в формате JSON
 func (us *URLShortener) JSONPostHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 
@@ -121,6 +191,7 @@ func (us *URLShortener) JSONPostHandler(w http.ResponseWriter, r *http.Request) 
 	err = json.Unmarshal(body, &requestBody)
 
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -151,6 +222,7 @@ func (us *URLShortener) JSONPostHandler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// JSONBatchHandler Обрабатывает пакетные запросы на создание сокращенных URL
 func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 
@@ -158,6 +230,7 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	defer r.Body.Close()
 
 	var requestBody []BatchRequestBody
 	err = json.Unmarshal(body, &requestBody)
@@ -192,31 +265,47 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 		dataStorageRow := storage.DataStorageRow{
 			ShortURL: shortKey,
 			URL:      requestBodyRow.OriginalURL,
-			UserID:   us.CookieManager.ActualCookieValue,
+			UserID:   us.CookieManager.GetActualCookieValue(),
 		}
 		dataStorageRows = append(dataStorageRows, dataStorageRow)
 
 		if len(responseBodyBatch) == 1000 {
-			us.saveBatch(w, dataStorageRows)
+			err = us.URLRepository.SaveBatch(dataStorageRows)
+			log.Printf("ERROR = %v", err)
+
+			if err != nil {
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+				return
+			}
+
 			dataStorageRows = dataStorageRows[:0]
-			us.Storage.Save(shortKey, requestBodyRow.OriginalURL, us.CookieManager.ActualCookieValue)
+			us.URLRepository.Save(shortKey, requestBodyRow.OriginalURL, us.CookieManager.GetActualCookieValue())
 		}
 	}
 
 	if len(dataStorageRows) > 0 {
-		us.saveBatch(w, dataStorageRows)
+		err = us.URLRepository.SaveBatch(dataStorageRows)
+		log.Printf("ERROR = %v", err)
+
+		if err != nil {
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	err = us.buildJSONBatchResponse(w, responseBodyBatch)
 
 	if err != nil {
+		log.Printf("Internal Server Error")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
+	log.Printf("END BATCH HADLER")
 }
 
+// GetUserUrls Получает URL пользователя
 func (us *URLShortener) GetUserUrls(w http.ResponseWriter, r *http.Request) {
-	urls, err := us.Storage.GetUserUrls(us.CookieManager.ActualCookieValue)
+	urls, err := us.UserRepository.GetUserUrls(us.CookieManager.GetActualCookieValue())
 
 	if err != nil {
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
@@ -228,21 +317,24 @@ func (us *URLShortener) GetUserUrls(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = us.buildAllUserUrlsResponsew(w, urls)
+	err = us.buildAllUserUrlsResponse(w, urls)
 
 	if err != nil {
 		return
 	}
 }
 
-func (us *URLShortener) saveBatch(w http.ResponseWriter, dataStorageRows []storage.DataStorageRow) {
-	err := us.Storage.SaveBatch(dataStorageRows)
+func (us *URLShortener) saveBatch(w http.ResponseWriter, dataStorageRows []storage.DataStorageRow) error {
+	err := us.URLRepository.SaveBatch(dataStorageRows)
 
 	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return fmt.Errorf("ServerAddress is required")
 	}
+
+	return nil
 }
 
+// PostHandler Обрабатывает запрос на создание короткого URL
 func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 
@@ -280,15 +372,22 @@ func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
 	}(r.Body)
 }
 
+// getShortKey генерирует короткий ключ для заданного оригинального URL.
+// Если короткий URL уже существует, возвращает его и ошибку ErrShortURLExists.
+// Если короткого URL не существует, он создается и сохраняется в репозитории.
+// Параметры:
+//   - postURL: оригинальный URL, для которого требуется получить или создать короткий ключ.
+//
+// Возвращает короткий ключ и ошибку, если возникла проблема.
 func (us *URLShortener) getShortKey(postURL string) (string, error) {
-	shortKey, err := us.getShortURL(postURL)
+	shortKey, err := us.URLRepository.GetShortURL(postURL)
 
 	if err == nil {
 		return shortKey, ErrShortURLExists
 	}
 
 	shortKey = generateShortKey()
-	err = us.Storage.Save(shortKey, postURL, us.CookieManager.ActualCookieValue)
+	err = us.URLRepository.Save(shortKey, postURL, us.CookieManager.GetActualCookieValue())
 
 	if err != nil {
 		return "", err
@@ -297,6 +396,9 @@ func (us *URLShortener) getShortKey(postURL string) (string, error) {
 	return shortKey, nil
 }
 
+// generateShortKey создает новый короткий ключ длиной 6 знаков, состоящий из
+// букв и цифр. Использует криптографически безопасный генератор случайных чисел.
+// Возвращает сгенерированный короткий ключ.
 func generateShortKey() string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	const keyLength = 6
@@ -310,6 +412,9 @@ func generateShortKey() string {
 	return string(shortKey)
 }
 
+// buildResponse формирует ответ на запрос с коротким URL.
+// Устанавливает заголовок типа контента и статус ответа в зависимости от того,
+// существует ли короткий URL или нет
 func (us *URLShortener) buildResponse(w http.ResponseWriter, shortKey string, isExist bool) {
 	w.Header().Set("content-type", "text/plain")
 
@@ -331,6 +436,15 @@ func (us *URLShortener) buildResponse(w http.ResponseWriter, shortKey string, is
 	}
 }
 
+// buildJSONResponse формирует JSON-ответ для HTTP-запроса с указанным результатом.
+// Устанавливает заголовок "Content-Type" в "application/json" и устанавливает статус ответа
+// в зависимости от существования короткого URL.
+// Параметры:
+//   - w: объект ResponseWriter для записи ответа.
+//   - response: данные для сериализации в формате JSON.
+//   - isExist: булево значение, указывающее, существует ли короткий URL.
+//
+// Возвращает ошибку, если произошла проблема с сериализацией или записью ответа.
 func (us *URLShortener) buildJSONResponse(w http.ResponseWriter, response JSONResponseBody, isExist bool) error {
 	w.Header().Set("Content-Type", "application/json")
 	if !isExist {
@@ -361,6 +475,13 @@ func (us *URLShortener) buildJSONResponse(w http.ResponseWriter, response JSONRe
 	return nil
 }
 
+// buildJSONBatchResponse формирует JSON-ответ для пакетных запросов с указанными данными.
+// Устанавливает заголовок "Content-Type" в "application/json" и возвращает статус 201 Created.
+// Параметры:
+//   - w: объект ResponseWriter для записи ответа.
+//   - response: массив данных для сериализации в формате JSON.
+//
+// Возвращает ошибку, если произошла проблема с сериализацией или записью ответа.
 func (us *URLShortener) buildJSONBatchResponse(w http.ResponseWriter, response []BatchResponseBodyItem) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -382,7 +503,14 @@ func (us *URLShortener) buildJSONBatchResponse(w http.ResponseWriter, response [
 	return nil
 }
 
-func (us *URLShortener) buildAllUserUrlsResponsew(w http.ResponseWriter, response []storage.UserUrlsResponseBodyItem) error {
+// buildAllUserUrlsResponse формирует JSON-ответ для списка URL пользователя.
+// Устанавливает заголовок "Content-Type" в "application/json" и статус ответа в 200 OK.
+// Параметры:
+//   - w: объект ResponseWriter для записи ответа.
+//   - response: массив строк данных URL пользователя, которые будут сериализованы в формате JSON.
+//
+// Возвращает ошибку, если произошла проблема с сериализацией данных или записью ответа.
+func (us *URLShortener) buildAllUserUrlsResponse(w http.ResponseWriter, response []storage.UserUrlsResponseBodyItem) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
@@ -407,6 +535,14 @@ func (us *URLShortener) buildAllUserUrlsResponsew(w http.ResponseWriter, respons
 	return nil
 }
 
+// DeleteUserUrlsBatch удаляет пакетные короткие URL для текущего пользователя.
+// Принимает массив коротких URL и обрабатывает их удаление в партиях заданного размера.
+//
+// Параметры:
+//   - shortURLs: массив коротких URL, которые необходимо удалить.
+//
+// Метод не возвращает значений. Если возникает ошибка при удалении любого из URL,
+// она будет записана в лог, но выполнение продолжится для следующих URL.
 func (us *URLShortener) DeleteUserUrlsBatch(shortURLs []string) {
 	batchSize := 100
 
@@ -417,13 +553,14 @@ func (us *URLShortener) DeleteUserUrlsBatch(shortURLs []string) {
 		}
 
 		urlsBatch := shortURLs[i:end]
-		err := us.Storage.DeleteUserUrls(us.CookieManager.ActualCookieValue, urlsBatch)
+		err := us.UserRepository.DeleteUserUrls(us.CookieManager.GetActualCookieValue(), urlsBatch)
 		if err != nil {
 			log.Printf("Error while deleting urls")
 		}
 	}
 }
 
+// DeleteUserUrls Удаляет короткие URL
 func (us *URLShortener) DeleteUserUrls(w http.ResponseWriter, r *http.Request) {
 	var shortURLs []string
 	err := json.NewDecoder(r.Body).Decode(&shortURLs)

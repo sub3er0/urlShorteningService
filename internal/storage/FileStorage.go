@@ -9,10 +9,25 @@ import (
 	"os"
 )
 
+// FileStorage представляет хранилище данных в файловой системе.
+// Она используется для сохранения и получения данных из файлов по заданному пути.
 type FileStorage struct {
+	// FileStoragePath указывает путь к файлу или директории, где будут храниться данные.
 	FileStoragePath string
 }
 
+// Init инициализирует хранилище данных. В этой реализации ничего не делает,
+// так как данные хранятся в файловой системе.
+func (fs *FileStorage) Init(connectionString string) error {
+	return nil
+}
+
+// Close закрывает хранилище данных. В этом случае ничего не нужно делать,
+// так как нет открытых ресурсов.
+func (fs *FileStorage) Close() {}
+
+// SaveBatch сохраняет пакет данных, представленных в виде массива DataStorageRow.
+// Возвращает ошибку, если сохранение не удалось.
 func (fs *FileStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
 	urlCount := fs.GetURLCount()
 	for i := range dataStorageRows {
@@ -49,6 +64,8 @@ func (fs *FileStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
 	return nil
 }
 
+// GetURL возвращает полный URL для заданного короткого URL.
+// Возвращает структуру GetURLRow и булевое значение, указывающее на существование.
 func (fs *FileStorage) GetURL(shortURL string) (GetURLRow, bool) {
 	file, err := os.OpenFile(fs.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
 	var getURLRow GetURLRow
@@ -87,6 +104,7 @@ func (fs *FileStorage) GetURL(shortURL string) (GetURLRow, bool) {
 	return getURLRow, false
 }
 
+// GetURLCount возвращает количество сохранённых URL в хранилище.
 func (fs *FileStorage) GetURLCount() int {
 	file, err := os.OpenFile(fs.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
 
@@ -111,6 +129,8 @@ func (fs *FileStorage) GetURLCount() int {
 	return count
 }
 
+// GetShortURL ищет короткий URL для заданного оригинального URL.
+// Возвращает короткий URL, если он найден, и ошибку, если нет.
 func (fs *FileStorage) GetShortURL(URL string) (string, error) {
 	file, err := os.OpenFile(fs.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
 
@@ -148,6 +168,13 @@ func (fs *FileStorage) GetShortURL(URL string) (string, error) {
 	return "", err
 }
 
+// Save сохраняет короткий URL с соответствующим полному URL и идентификатору пользователя.
+// Параметры:
+//   - ShortURL: короткий URL, который должен быть сохранён.
+//   - URL: полный (оригинальный) URL, который связан с коротким URL.
+//   - userID: идентификатор пользователя, который добавляет URL.
+//
+// Возвращает ошибку, если сохранение не удалось.
 func (fs *FileStorage) Save(ShortURL string, URL string, userID string) error {
 	row := DataStorageRow{
 		ID:       fs.GetURLCount(),
@@ -177,6 +204,8 @@ func (fs *FileStorage) Save(ShortURL string, URL string, userID string) error {
 	return nil
 }
 
+// LoadData загружает данные из хранилища и возвращает их в виде массива DataStorageRow.
+// Возвращает массив DataStorageRow и ошибку, если произошла ошибка чтения данных.
 func (fs *FileStorage) LoadData() ([]DataStorageRow, error) {
 	file, err := os.OpenFile(fs.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
 
@@ -212,22 +241,32 @@ func (fs *FileStorage) LoadData() ([]DataStorageRow, error) {
 	return dataStorageRows, nil
 }
 
+// Ping проверяет состояние работы хранилища.
+// Возвращает true, так как хранилище работает в оперативной памяти.
 func (fs *FileStorage) Ping() bool {
 	return true
 }
 
+// IsUserExist проверяет, существует ли пользователь по уникальному идентификатору.
+// В данной реализации всегда возвращает false, так как InMemoryStorage не хранит пользователей.
 func (fs *FileStorage) IsUserExist(data string) bool {
 	return false
 }
 
+// SaveUser сохраняет нового пользователя с указанным уникальным идентификатором.
+// В данной реализации ничего не делает и всегда возвращает nil.
 func (fs *FileStorage) SaveUser(uniqueID string) error {
 	return nil
 }
 
+// GetUserUrls возвращает список URL, сохранённых для указанного пользователя.
+// В данной реализации всегда возвращает nil, так как InMemoryStorage не хранит пользователей.
 func (fs *FileStorage) GetUserUrls(uniqueID string) ([]UserUrlsResponseBodyItem, error) {
 	return nil, nil
 }
 
+// DeleteUserUrls удаляет указанные короткие URL для данного пользователя.
+// В данной реализации ничего не делает и всегда возвращает nil.
 func (fs *FileStorage) DeleteUserUrls(uniqueID string, shortURLS []string) error {
 	return nil
 }

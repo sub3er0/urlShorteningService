@@ -8,25 +8,31 @@ import (
 	"strings"
 )
 
+// AllowedContentTypes содержит список разрешенных типов контента для сжатия.
 var AllowedContentTypes = []string{"application/json", "text/html"}
 
+// gzipResponseWriter реализует интерфейс http.ResponseWriter и оборачивает gzip.Writer.
 type gzipResponseWriter struct {
 	w  http.ResponseWriter
 	gz *gzip.Writer
 }
 
+// Header возвращает заголовки ответа HTTP.
 func (rw *gzipResponseWriter) Header() http.Header {
 	return rw.w.Header()
 }
 
+// Write записывает данные в сжатом формате.
 func (rw *gzipResponseWriter) Write(b []byte) (int, error) {
 	return rw.gz.Write(b)
 }
 
+// WriteHeader устанавливает код состояния для ответа.
 func (rw *gzipResponseWriter) WriteHeader(statusCode int) {
 	rw.w.WriteHeader(statusCode)
 }
 
+// RequestDecompressor возвращает обработчик, который распаковывает сжатые запросы и устанавливает сжатие для ответов.
 func RequestDecompressor(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		rw := w
@@ -67,6 +73,7 @@ func RequestDecompressor(next http.Handler) http.Handler {
 	})
 }
 
+// contains проверяет наличие строки в списке.
 func contains(target string, list []string) bool {
 	for _, v := range list {
 		if v == target {
