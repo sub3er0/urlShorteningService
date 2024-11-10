@@ -25,10 +25,12 @@ type ConfigData struct {
 // isParsed отслеживает, выполнена ли обработка аргументов командной строки.
 var isParsed bool
 
+// ConfigurationInterface интерфейс, в рамках проекта используется для моков юинт тестов
 type ConfigurationInterface interface {
 	InitConfig() (*ConfigData, error)
 }
 
+// Configuration структура конфигурации, реализующая интерфейс ConfigurationInterface
 type Configuration struct{}
 
 // InitConfig инициализирует конфигурацию приложения.
