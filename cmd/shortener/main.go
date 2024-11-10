@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/sub3er0/urlShorteningService/internal/config"
 	"github.com/sub3er0/urlShorteningService/internal/cookie"
@@ -16,11 +17,23 @@ import (
 
 var shortenerInstance *shortener.URLShortener
 
+var (
+	buildVersion string = "N/A" // Значение по умолчанию
+	buildDate    string = "N/A" // Значение по умолчанию
+	buildCommit  string = "N/A" // Значение по умолчанию
+)
+
 func main() {
-	cfg, err := config.InitConfig()
+	fmt.Printf("Build version: %s\n", buildVersion)
+	fmt.Printf("Build date: %s\n", buildDate)
+	fmt.Printf("Build commit: %s\n", buildCommit)
+
+	configuration := &config.Configuration{}
+
+	cfg, err := configuration.InitConfig()
 
 	if err != nil {
-		log.Fatalf("Error while initializing config: %v", err)
+		log.Fatalf("Error while initializing configuration: %v", err)
 	}
 
 	var dataUrlsStorage storage.URLStorageInterface
