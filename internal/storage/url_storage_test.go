@@ -11,8 +11,8 @@ import (
 func TestURLStorage_GetURL(t *testing.T) {
 	// Создаем мок объекта pgxpool
 	mock, err := pgxmock.NewPool()
-	defer mock.Close()
 	assert.NoError(t, err)
+	defer mock.Close()
 
 	ctx := context.Background()
 	storage := &URLStorage{conn: mock, ctx: ctx}
@@ -40,8 +40,8 @@ func TestURLStorage_GetURL(t *testing.T) {
 
 func TestURLStorage_GetShortURL(t *testing.T) {
 	mock, err := pgxmock.NewPool()
-	defer mock.Close()
 	assert.NoError(t, err)
+	defer mock.Close()
 
 	ctx := context.Background()
 	storage := &URLStorage{conn: mock, ctx: ctx}
@@ -66,8 +66,8 @@ func TestURLStorage_GetShortURL(t *testing.T) {
 
 func TestURLStorage_Save(t *testing.T) {
 	mock, err := pgxmock.NewPool()
-	defer mock.Close()
 	assert.NoError(t, err)
+	defer mock.Close()
 
 	ctx := context.Background()
 	storage := &URLStorage{conn: mock, ctx: ctx}
@@ -91,8 +91,8 @@ func TestURLStorage_Save(t *testing.T) {
 func TestURLStorage_GetURLCount(t *testing.T) {
 	// У этой функции нет реальной реализации, но мы можем протестировать, что она возвращает 0
 	mock, err := pgxmock.NewPool()
-	defer mock.Close()
 	assert.NoError(t, err)
+	defer mock.Close()
 
 	ctx := context.Background()
 	storage := &URLStorage{conn: mock, ctx: ctx}

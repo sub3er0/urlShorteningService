@@ -62,7 +62,7 @@ func TestInMemoryStorage(t *testing.T) {
 	// Тестирование Ping
 	assert.True(t, storage.Ping(), "Expected Ping to return true")
 
-	err = storage.Set("shortURL", "longURL")
-	url, err = storage.GetShortURL("longURL")
+	_ = storage.Set("shortURL", "longURL")
+	url, _ = storage.GetShortURL("longURL")
 	assert.Equal(t, "shortURL", url)
 }

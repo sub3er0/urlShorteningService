@@ -10,9 +10,7 @@ type InMemoryStorage struct {
 }
 
 // SetConnection заглушка для интерфейса
-func (ims *InMemoryStorage) SetConnection(conn DBConnectionInterface) {
-	return
-}
+func (ims *InMemoryStorage) SetConnection(conn DBConnectionInterface) {}
 
 // Init инициализирует хранилище. В данной реализации ничего не делает,
 // так как хранилище работает в оперативной памяти.
