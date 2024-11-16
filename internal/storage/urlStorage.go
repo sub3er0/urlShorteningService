@@ -56,6 +56,7 @@ type URLStorage struct {
 	ctx context.Context
 }
 
+// SetConnection устанавливает объект подключения к бд
 func (us *URLStorage) SetConnection(conn DBConnectionInterface) {
 	us.conn = conn
 }
