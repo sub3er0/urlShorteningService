@@ -42,7 +42,7 @@ type UserStorageInterface interface {
 // и взаимодействия с базой данных через пул соединений pgx.
 type UsersStorage struct {
 	// conn представляет пул соединений с базой данных, позволяющий выполнять SQL-команды и запросы.
-	conn *pgxpool.Pool
+	conn DBConnectionInterface
 
 	// ctx представляет контекст, используемый для управления временем жизни запросов и операций.
 	ctx context.Context

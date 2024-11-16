@@ -13,6 +13,10 @@ type MockURLStorage struct {
 	mock.Mock
 }
 
+func (m *MockURLStorage) SetConnection(conn storage.DBConnectionInterface) {
+	m.Called(conn)
+}
+
 // GetURL реализует метод интерфейса URLStorageInterface
 func (m *MockURLStorage) GetURL(shortURL string) (storage.GetURLRow, bool) {
 	args := m.Called(shortURL)

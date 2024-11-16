@@ -12,6 +12,9 @@ import (
 
 // URLStorageInterface определяет методы для работы с хранилищем URL.
 type URLStorageInterface interface {
+	// SetConnection устанавливает объект подключения
+	SetConnection(conn DBConnectionInterface)
+
 	// GetURL получит URL по его короткому формату.
 	GetURL(shortURL string) (GetURLRow, bool)
 
@@ -51,6 +54,10 @@ type URLStorage struct {
 
 	// ctx представляет контекст, используемый для управления временем жизни запросов и операций.
 	ctx context.Context
+}
+
+func (us *URLStorage) SetConnection(conn DBConnectionInterface) {
+	us.conn = conn
 }
 
 // GetURL возвращает строку, соответствующую заданному короткому URL.

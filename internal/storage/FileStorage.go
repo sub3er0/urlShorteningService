@@ -16,6 +16,11 @@ type FileStorage struct {
 	FileStoragePath string
 }
 
+// SetConnection заглушка для интерфейса
+func (fs *FileStorage) SetConnection(conn DBConnectionInterface) {
+	return
+}
+
 // Init инициализирует хранилище данных. В этой реализации ничего не делает,
 // так как данные хранятся в файловой системе.
 func (fs *FileStorage) Init(connectionString string) error {
