@@ -51,6 +51,21 @@ func (m *MockUserStorage) Close() {
 	m.Called()
 }
 
+// Тест для функции GetActualCookieValue
+func TestCookieHandler_GetActualCookieValue(t *testing.T) {
+	// Создаем экземпляр CookieManager с тестовым значением
+	expectedValue := "test_cookie_value"
+	cm := &CookieManager{ActualCookieValue: expectedValue}
+
+	// Вызываем функцию
+	actualValue := cm.GetActualCookieValue()
+
+	// Проверяем, равно ли возвращаемое значение ожидаемому
+	if actualValue != expectedValue {
+		t.Errorf("Expected %s but got %s", expectedValue, actualValue)
+	}
+}
+
 func TestCookieHandler_NewUserCreated(t *testing.T) {
 	// Arrange
 	mockStorage := new(MockUserStorage)
