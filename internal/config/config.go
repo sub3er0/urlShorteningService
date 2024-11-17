@@ -20,6 +20,9 @@ type ConfigData struct {
 
 	// DatabaseDsn представляет строку подключения к базе данных.
 	DatabaseDsn string `json:"database_dsn"`
+
+	// EnableHTTPS включает https
+	EnableHTTPS bool `json:"enable_https"`
 }
 
 // isParsed отслеживает, выполнена ли обработка аргументов командной строки.
@@ -45,6 +48,7 @@ func (cs *Configuration) InitConfig() (*ConfigData, error) {
 			&cfg.DatabaseDsn,
 			"d", "",
 			"Строка подключения к базе данных")
+		flag.BoolVar(&cfg.EnableHTTPS, "s", false, "Enable HTTPS")
 
 		flag.Parse()
 		isParsed = true
@@ -64,6 +68,10 @@ func (cs *Configuration) InitConfig() (*ConfigData, error) {
 
 	if DatabaseDsn := os.Getenv("DATABASE_DSN"); DatabaseDsn != "" {
 		cfg.DatabaseDsn = DatabaseDsn
+	}
+
+	if os.Getenv("ENABLE_HTTPS") == "true" {
+		cfg.EnableHTTPS = true
 	}
 
 	if cfg.ServerAddress == "" {

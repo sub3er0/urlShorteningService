@@ -11,8 +11,10 @@ import (
 	"github.com/sub3er0/urlShorteningService/internal/shortener"
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/acme/autocert"
 	"log"
 	"net/http"
+	"os"
 )
 
 var shortenerInstance *shortener.URLShortener
@@ -100,7 +102,33 @@ func main() {
 
 	r.Get("/ping", shortenerInstance.PingHandler)
 
-	err = http.ListenAndServe(cfg.ServerAddress, r)
+	// Проверка переменной окружения или флага для включения HTTPS
+	if cfg.EnableHTTPS || os.Getenv("ENABLE_HTTPS") == "true" {
+		// Создаем менеджер для автоматического управления сертификатами
+		manager := &autocert.Manager{
+			Cache:      autocert.DirCache("cache-dir"),      // Директория для хранения сертификатов
+			Prompt:     autocert.AcceptTOS,                  // Принять условия использования
+			HostPolicy: autocert.HostWhitelist("localhost"), // Перечень доменов
+		}
+
+		// Создаем сервер с поддержкой TLS
+		server := &http.Server{
+			Addr:      ":443",              // Порт для HTTPS
+			Handler:   r,                   // Ваше обработчик
+			TLSConfig: manager.TLSConfig(), // TLS-конфигурация
+		}
+
+		// Запускаем сервер
+		log.Println("Starting server on port 443")
+		if err := server.ListenAndServeTLS("", ""); err != nil {
+			log.Fatalf("Error starting HTTPS server: %s", err)
+		}
+	} else {
+		err = http.ListenAndServe(cfg.ServerAddress, r)
+		if err != nil {
+			log.Fatalf("Error starting server: %s", err)
+		}
+	}
 
 	if err != nil {
 		log.Fatalf("Error starting server: %s", err)
