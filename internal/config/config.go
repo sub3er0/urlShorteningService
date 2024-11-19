@@ -1,8 +1,10 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 )
 
@@ -39,6 +41,21 @@ type Configuration struct{}
 // InitConfig инициализирует конфигурацию приложения.
 func (cs *Configuration) InitConfig() (*ConfigData, error) {
 	cfg := &ConfigData{}
+
+	configFile := os.Getenv("CONFIG")
+	if configFile == "" {
+		configFile = "config.json"
+	}
+
+	file, err := os.Open(configFile)
+	if err != nil {
+		log.Printf("Warning: Error opening config file: %v. Using default configuration.\n", err)
+	}
+	defer file.Close()
+
+	if err := json.NewDecoder(file).Decode(cfg); err != nil {
+		log.Printf("Warning: Error decoding config file: %v. Using default configuration.\n", err)
+	}
 
 	if !isParsed {
 		flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080/", "Базовый адрес для сокращенных URL")
