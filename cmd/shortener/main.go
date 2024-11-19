@@ -115,7 +115,8 @@ func main() {
 	go func() {
 		<-sigint
 		// получили сигнал os.Interrupt, запускаем процедуру graceful shutdown
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
 		if err := server.Shutdown(ctx); err != nil {
@@ -140,19 +141,15 @@ func main() {
 		server.TLSConfig = manager.TLSConfig()
 
 		if err := server.ListenAndServeTLS("", ""); err != nil {
-			log.Fatalf("Error starting HTTPS server: %s", err)
+			log.Printf("Error starting HTTPS server: %s", err)
 		}
 	} else {
 		server.Addr = cfg.ServerAddress
 		server.Handler = r
 		err = server.ListenAndServe()
 		if err != nil {
-			log.Fatalf("Error starting server: %s", err)
+			log.Printf("Error starting server: %s", err)
 		}
-	}
-
-	if err != nil {
-		log.Fatalf("Error starting server: %s", err)
 	}
 
 	<-idleConnsClosed
