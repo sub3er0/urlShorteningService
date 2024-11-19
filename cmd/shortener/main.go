@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/sub3er0/urlShorteningService/internal/config"
@@ -15,6 +16,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 var shortenerInstance *shortener.URLShortener
@@ -102,29 +105,43 @@ func main() {
 
 	r.Get("/ping", shortenerInstance.PingHandler)
 
-	// Проверка переменной окружения или флага для включения HTTPS
+	server := &http.Server{}
+
+	idleConnsClosed := make(chan struct{})
+	sigint := make(chan os.Signal, 1)
+	signal.Notify(sigint, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
+	go func() {
+		<-sigint
+		// получили сигнал os.Interrupt, запускаем процедуру graceful shutdown
+		if err := server.Shutdown(context.Background()); err != nil {
+			// ошибки закрытия Listener
+			log.Printf("HTTP server Shutdown: %v", err)
+		}
+
+		close(idleConnsClosed)
+	}()
+
 	if cfg.EnableHTTPS || os.Getenv("ENABLE_HTTPS") == "true" {
-		// Создаем менеджер для автоматического управления сертификатами
-		manager := &autocert.Manager{
-			Cache:      autocert.DirCache("cache-dir"),      // Директория для хранения сертификатов
-			Prompt:     autocert.AcceptTOS,                  // Принять условия использования
-			HostPolicy: autocert.HostWhitelist("localhost"), // Перечень доменов
-		}
-
-		// Создаем сервер с поддержкой TLS
-		server := &http.Server{
-			Addr:      ":443",              // Порт для HTTPS
-			Handler:   r,                   // Ваше обработчик
-			TLSConfig: manager.TLSConfig(), // TLS-конфигурация
-		}
-
-		// Запускаем сервер
 		log.Println("Starting server on port 443")
+
+		manager := &autocert.Manager{
+			Cache:      autocert.DirCache("cache-dir"),
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist(cfg.ServerAddress),
+		}
+
+		server.Addr = ":443"
+		server.Handler = r
+		server.TLSConfig = manager.TLSConfig()
+
 		if err := server.ListenAndServeTLS("", ""); err != nil {
 			log.Fatalf("Error starting HTTPS server: %s", err)
 		}
 	} else {
-		err = http.ListenAndServe(cfg.ServerAddress, r)
+		server.Addr = cfg.ServerAddress
+		server.Handler = r
+		err = server.ListenAndServe()
 		if err != nil {
 			log.Fatalf("Error starting server: %s", err)
 		}
@@ -133,4 +150,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error starting server: %s", err)
 	}
+
+	<-idleConnsClosed
+
+	fmt.Println("Server Shutdown gracefully")
 }
