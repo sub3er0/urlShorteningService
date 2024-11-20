@@ -10,9 +10,9 @@ import (
 func TestInitConfig_ValidArgs(t *testing.T) {
 	// Указываем аргументы командной строки
 	os.Args = []string{"cmd", "-a", "localhost:8080", "-b", "http://localhost:8080/", "-f", "/path/to/file", "-d", "user:pass@/dbname"}
-
+	config := Configuration{}
 	// Act
-	cfg, err := InitConfig()
+	cfg, err := config.InitConfig()
 
 	// Assert
 	assert.NoError(t, err)
@@ -36,7 +36,9 @@ func TestInitConfig_ValidEnvVars(t *testing.T) {
 	defer os.Unsetenv("DATABASE_DSN")
 
 	// Act
-	cfg, err := InitConfig()
+	config := Configuration{}
+	// Act
+	cfg, err := config.InitConfig()
 
 	// Assert
 	assert.NoError(t, err)
@@ -51,7 +53,9 @@ func TestInitConfig_MissingServerAddress(t *testing.T) {
 	os.Args = []string{"cmd", "-f", "/path/to/file", "-d", "user:pass@/dbname", "-a", ""}
 
 	// Act
-	cfg, err := InitConfig()
+	config := Configuration{}
+	// Act
+	cfg, err := config.InitConfig()
 
 	// Assert
 	assert.Nil(t, cfg)
@@ -65,7 +69,9 @@ func TestInitConfig_MissingBaseURL(t *testing.T) {
 	os.Args = []string{"cmd", "-a", "localhost:8080", "-b", ""}
 
 	// Act
-	cfg, err := InitConfig()
+	config := Configuration{}
+	// Act
+	cfg, err := config.InitConfig()
 
 	// Assert
 	assert.Nil(t, cfg)

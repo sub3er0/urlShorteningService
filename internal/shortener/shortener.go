@@ -244,9 +244,9 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 	var dataStorageRows []storage.DataStorageRow
 
 	for _, requestBodyRow := range requestBody {
-		shortKey, err := us.getShortURL(requestBodyRow.OriginalURL)
+		shortKey, getShortURLError := us.getShortURL(requestBodyRow.OriginalURL)
 
-		if err != nil {
+		if getShortURLError != nil {
 			shortKey = generateShortKey()
 		}
 
@@ -255,7 +255,7 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 			ShortURL:      us.BaseURL + shortKey,
 		}
 
-		if errors.Is(err, ErrShortURLExists) {
+		if errors.Is(getShortURLError, ErrShortURLExists) {
 			responseBodyBatch = append(responseBodyBatch, responseBody)
 			continue
 		}
@@ -270,10 +270,10 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 		dataStorageRows = append(dataStorageRows, dataStorageRow)
 
 		if len(responseBodyBatch) == 1000 {
-			err = us.URLRepository.SaveBatch(dataStorageRows)
-			log.Printf("ERROR = %v", err)
+			getShortURLError = us.URLRepository.SaveBatch(dataStorageRows)
+			log.Printf("ERROR = %v", getShortURLError)
 
-			if err != nil {
+			if getShortURLError != nil {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}

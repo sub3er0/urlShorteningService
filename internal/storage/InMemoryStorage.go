@@ -9,6 +9,9 @@ type InMemoryStorage struct {
 	Urls map[string]string
 }
 
+// SetConnection заглушка для интерфейса
+func (ims *InMemoryStorage) SetConnection(conn DBConnectionInterface) {}
+
 // Init инициализирует хранилище. В данной реализации ничего не делает,
 // так как хранилище работает в оперативной памяти.
 func (ims *InMemoryStorage) Init(connectionString string) error {

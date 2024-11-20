@@ -6,9 +6,9 @@ import (
 	"os"
 )
 
-// Config представляет конфигурацию приложения.
+// ConfigData представляет конфигурацию приложения.
 // Это структура содержит параметры, необходимые для настройки серверного приложения.
-type Config struct {
+type ConfigData struct {
 	// ServerAddress определяет адрес HTTP-сервера, на котором будет работать приложение.
 	ServerAddress string `json:"server_address"`
 
@@ -25,9 +25,17 @@ type Config struct {
 // isParsed отслеживает, выполнена ли обработка аргументов командной строки.
 var isParsed bool
 
+// ConfigurationInterface интерфейс, в рамках проекта используется для моков юинт тестов
+type ConfigurationInterface interface {
+	InitConfig() (*ConfigData, error)
+}
+
+// Configuration структура конфигурации, реализующая интерфейс ConfigurationInterface
+type Configuration struct{}
+
 // InitConfig инициализирует конфигурацию приложения.
-func InitConfig() (*Config, error) {
-	cfg := &Config{}
+func (cs *Configuration) InitConfig() (*ConfigData, error) {
+	cfg := &ConfigData{}
 
 	if !isParsed {
 		flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080/", "Базовый адрес для сокращенных URL")
