@@ -127,7 +127,7 @@ func main() {
 		close(idleConnsClosed)
 	}()
 
-	if cfg.EnableHTTPS || os.Getenv("ENABLE_HTTPS") == "true" {
+	if cfg.EnableHTTPS {
 		log.Println("Starting server on port 443")
 
 		manager := &autocert.Manager{
