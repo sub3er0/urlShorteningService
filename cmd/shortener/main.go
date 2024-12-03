@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/sub3er0/urlShorteningService/internal/config"
@@ -11,8 +12,13 @@ import (
 	"github.com/sub3er0/urlShorteningService/internal/shortener"
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/acme/autocert"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 var shortenerInstance *shortener.URLShortener
@@ -100,9 +106,53 @@ func main() {
 
 	r.Get("/ping", shortenerInstance.PingHandler)
 
-	err = http.ListenAndServe(cfg.ServerAddress, r)
+	server := &http.Server{}
 
-	if err != nil {
-		log.Fatalf("Error starting server: %s", err)
+	idleConnsClosed := make(chan struct{})
+	sigint := make(chan os.Signal, 1)
+	signal.Notify(sigint, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
+	go func() {
+		<-sigint
+		// получили сигнал os.Interrupt, запускаем процедуру graceful shutdown
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := server.Shutdown(ctx); err != nil {
+			// ошибки закрытия Listener
+			log.Printf("HTTP server Shutdown: %v", err)
+		}
+
+		close(idleConnsClosed)
+	}()
+
+	if cfg.EnableHTTPS {
+		log.Println("Starting server on port 443")
+
+		manager := &autocert.Manager{
+			Cache:      autocert.DirCache("cache-dir"),
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist(cfg.ServerAddress),
+		}
+
+		server.Addr = ":443"
+		server.Handler = r
+		server.TLSConfig = manager.TLSConfig()
+
+		if err := server.ListenAndServeTLS("", ""); err != nil {
+			log.Printf("Error starting HTTPS server: %s", err)
+		}
+	} else {
+		server.Addr = cfg.ServerAddress
+		server.Handler = r
+		err = server.ListenAndServe()
+		if err != nil {
+			log.Printf("Error starting server: %s", err)
+		}
 	}
+
+	<-idleConnsClosed
+
+	fmt.Println("Server Shutdown gracefully")
 }

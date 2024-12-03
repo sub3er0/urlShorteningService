@@ -1,8 +1,10 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 )
 
@@ -20,6 +22,9 @@ type ConfigData struct {
 
 	// DatabaseDsn представляет строку подключения к базе данных.
 	DatabaseDsn string `json:"database_dsn"`
+
+	// EnableHTTPS включает https
+	EnableHTTPS bool `json:"enable_https"`
 }
 
 // isParsed отслеживает, выполнена ли обработка аргументов командной строки.
@@ -37,6 +42,21 @@ type Configuration struct{}
 func (cs *Configuration) InitConfig() (*ConfigData, error) {
 	cfg := &ConfigData{}
 
+	configFile := os.Getenv("CONFIG")
+	if configFile == "" {
+		configFile = "config.json"
+	}
+
+	file, err := os.Open(configFile)
+	if err != nil {
+		log.Printf("Warning: Error opening config file: %v. Using default configuration.\n", err)
+	}
+	defer file.Close()
+
+	if err := json.NewDecoder(file).Decode(cfg); err != nil {
+		log.Printf("Warning: Error decoding config file: %v. Using default configuration.\n", err)
+	}
+
 	if !isParsed {
 		flag.StringVar(&cfg.BaseURL, "b", "http://localhost:8080/", "Базовый адрес для сокращенных URL")
 		flag.StringVar(&cfg.ServerAddress, "a", "localhost:8080", "Адрес HTTP-сервера")
@@ -45,6 +65,7 @@ func (cs *Configuration) InitConfig() (*ConfigData, error) {
 			&cfg.DatabaseDsn,
 			"d", "",
 			"Строка подключения к базе данных")
+		flag.BoolVar(&cfg.EnableHTTPS, "s", false, "Enable HTTPS")
 
 		flag.Parse()
 		isParsed = true
@@ -64,6 +85,10 @@ func (cs *Configuration) InitConfig() (*ConfigData, error) {
 
 	if DatabaseDsn := os.Getenv("DATABASE_DSN"); DatabaseDsn != "" {
 		cfg.DatabaseDsn = DatabaseDsn
+	}
+
+	if os.Getenv("ENABLE_HTTPS") == "true" {
+		cfg.EnableHTTPS = true
 	}
 
 	if cfg.ServerAddress == "" {
