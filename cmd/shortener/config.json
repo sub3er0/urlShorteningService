@@ -3,6 +3,5 @@
   "base_url": "http://localhost",
   "file_storage_path": "/path/to/file.db",
   "database_dsn": "",
-  "enable_https": false,
-  "trusted_subnet": "127.0.0.1/32"
+  "enable_https": false
 }
