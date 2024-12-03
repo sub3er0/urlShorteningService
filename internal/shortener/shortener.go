@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/url"
 	"sync"
@@ -31,6 +32,9 @@ type URLShortener struct {
 
 	// BaseURL представляет базовый адрес, который используется для сокращённых URL.
 	BaseURL string
+
+	// TrustedSubnet доверенная подсеть
+	TrustedSubnet string
 
 	// CookieManager управляет аутентификацией и обработкой куки в приложении.
 	CookieManager cookie.CookieManagerInterface
@@ -164,6 +168,61 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 	} else if storedURL.IsDeleted {
 		w.WriteHeader(http.StatusGone)
 	}
+}
+
+// GetInternalStats Получение статистики сервиса
+func (us *URLShortener) GetInternalStats(w http.ResponseWriter, r *http.Request) {
+	clientIP := r.Header.Get("X-Real-IP")
+	if !us.isIPInTrustedSubnet(clientIP) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	urlsCount, err := us.URLRepository.GetURLCount()
+
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	usersCount, err := us.UserRepository.GetUsersCount()
+
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// Формируем ответ
+	stats := map[string]int{
+		"urls":  urlsCount,
+		"users": usersCount,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(stats); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+// проверка, входит ли IP-адрес в доверенную подсеть
+func (us *URLShortener) isIPInTrustedSubnet(ip string) bool {
+	if us.TrustedSubnet == "" {
+		return false
+	}
+
+	_, subnet, err := net.ParseCIDR(us.TrustedSubnet)
+	if err != nil {
+		return false
+	}
+
+	clientIP := net.ParseIP(ip)
+	if clientIP == nil {
+		return false
+	}
+
+	return subnet.Contains(clientIP)
 }
 
 // PingHandler Проверяет состояние соединения с репозиторием

@@ -29,9 +29,9 @@ func (m *MockURLRepository) GetURL(shortURL string) (storage.GetURLRow, bool) {
 }
 
 // GetURLCount - реализует метод интерфейса URLRepositoryInterface.
-func (m *MockURLRepository) GetURLCount() int {
+func (m *MockURLRepository) GetURLCount() (int, error) {
 	args := m.Called()
-	return args.Int(0)
+	return args.Int(0), args.Error(1)
 }
 
 // GetShortURL - реализует метод интерфейса URLRepositoryInterface.
@@ -85,6 +85,12 @@ func (m *MockUserRepository) SaveUser(uniqueID string) error {
 func (m *MockUserRepository) GetUserUrls(uniqueID string) ([]storage.UserUrlsResponseBodyItem, error) {
 	args := m.Called(uniqueID)
 	return args.Get(0).([]storage.UserUrlsResponseBodyItem), args.Error(1)
+}
+
+// GetUsersCount получение количества пользователей
+func (m *MockUserRepository) GetUsersCount() (int, error) {
+	args := m.Called()
+	return args.Int(0), args.Error(1)
 }
 
 // DeleteUserUrls - реализует метод интерфейса UserRepositoryInterface.

@@ -36,6 +36,9 @@ type UserStorageInterface interface {
 
 	// Close закрывает соединение с хранилищем данных.
 	Close()
+
+	// GetUsersCount получение количества пользователей
+	GetUsersCount() (int, error)
 }
 
 // UsersStorage предоставляет реализацию для работы с хранилищем пользователей
@@ -153,4 +156,18 @@ func (us *UsersStorage) Init(connectionString string) error {
 // Этот метод должен вызываться для освобождения всех ресурсов, занимаемых соединением.
 func (us *UsersStorage) Close() {
 	us.conn.Close()
+}
+
+// GetUsersCount получение количества пользователей
+func (us *UsersStorage) GetUsersCount() (int, error) {
+	var count int
+	query := "SELECT COUNT(*) FROM users_cookie"
+
+	row := us.conn.QueryRow(us.ctx, query)
+
+	if err := row.Scan(&count); err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }

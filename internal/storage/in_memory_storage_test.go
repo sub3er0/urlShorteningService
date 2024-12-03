@@ -38,7 +38,7 @@ func TestInMemoryStorage(t *testing.T) {
 	assert.Error(t, err, "Expected error for nonexistent URL")
 
 	// Тестим GetURLCount
-	count := storage.GetURLCount()
+	count, err := storage.GetURLCount()
 	assert.Equal(t, 1, count, "Expected URL count to be 1")
 
 	// Тестим SaveBatch

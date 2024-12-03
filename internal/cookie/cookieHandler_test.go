@@ -51,6 +51,11 @@ func (m *MockUserStorage) Close() {
 	m.Called()
 }
 
+// GetUsersCount получение количества пользователей
+func (m *MockUserStorage) GetUsersCount() (int, error) {
+	return 0, nil
+}
+
 // Тест для функции GetActualCookieValue
 func TestCookieHandler_GetActualCookieValue(t *testing.T) {
 	// Создаем экземпляр CookieManager с тестовым значением

@@ -24,9 +24,9 @@ func (m *MockURLStorage) GetURL(shortURL string) (storage.GetURLRow, bool) {
 }
 
 // GetURLCount реализует метод интерфейса URLStorageInterface
-func (m *MockURLStorage) GetURLCount() int {
+func (m *MockURLStorage) GetURLCount() (int, error) {
 	args := m.Called()
-	return args.Int(0)
+	return args.Int(0), args.Error(1)
 }
 
 // GetShortURL реализует метод интерфейса URLStorageInterface
@@ -95,10 +95,10 @@ func TestGetURLCount(t *testing.T) {
 	repo := &URLRepository{Storage: mockStorage}
 
 	// Подготовка ожидания
-	mockStorage.On("GetURLCount").Return(42)
+	mockStorage.On("GetURLCount").Return(42, nil)
 
 	// Вызов метода GetURLCount
-	count := repo.GetURLCount()
+	count, _ := repo.GetURLCount()
 
 	// Проверка результата
 	assert.Equal(t, 42, count)

@@ -97,13 +97,17 @@ func TestGetURLCount(t *testing.T) {
 
 	fs := &FileStorage{FileStoragePath: testFilePath}
 
-	if count := fs.GetURLCount(); count != 0 {
+	count, _ := fs.GetURLCount()
+
+	if count != 0 {
 		t.Errorf("expected URL count to be 0, got %d", count)
 	}
 
 	_ = fs.Save("short1", "http://example.com", "user1")
 
-	if count := fs.GetURLCount(); count != 1 {
+	count, _ = fs.GetURLCount()
+
+	if count != 1 {
 		t.Errorf("expected URL count to be 1, got %d", count)
 	}
 }

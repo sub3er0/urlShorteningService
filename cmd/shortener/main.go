@@ -77,6 +77,7 @@ func main() {
 		URLRepository:  urlRepository,
 		ServerAddress:  cfg.ServerAddress,
 		BaseURL:        cfg.BaseURL,
+		TrustedSubnet:  cfg.TrustedSubnet,
 		CookieManager:  &cookieManager,
 		RemoveChan:     make(chan string),
 	}
@@ -99,6 +100,7 @@ func main() {
 		r.Get("/{id}", shortenerInstance.GetHandler)
 		r.Post("/api/shorten", shortenerInstance.JSONPostHandler)
 		r.Post("/api/shorten/batch", shortenerInstance.JSONBatchHandler)
+		r.Get("/api/internal/stats", shortenerInstance.GetInternalStats)
 
 		r.With(cookieManager.AuthMiddleware).Get("/api/user/urls", shortenerInstance.GetUserUrls)
 		r.With(cookieManager.AuthMiddleware).Delete("/api/user/urls", shortenerInstance.DeleteUserUrls)
