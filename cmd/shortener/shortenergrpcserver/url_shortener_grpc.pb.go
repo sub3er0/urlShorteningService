@@ -4,7 +4,7 @@
 // - protoc             v5.29.1
 // source: url_shortener.proto
 
-package grpc_server
+package shortenergrpcserver
 
 import (
 	context "context"

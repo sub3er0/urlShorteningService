@@ -1,4 +1,4 @@
-package grpc_server
+package shortenergrpcserver
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"github.com/sub3er0/urlShorteningService/internal/cookie"
 	"github.com/sub3er0/urlShorteningService/internal/repository"
 	"github.com/sub3er0/urlShorteningService/internal/shortener"
-	"log"
 )
 
 type GRPCHandlers struct {
@@ -44,9 +43,8 @@ func (h *GRPCHandlers) ShortenURL(ctx context.Context, req *ShortenRequest) (*Sh
 
 // GetURL обрабатывает gRPC-запрос для получения оригинального URL.
 func (h *GRPCHandlers) GetURL(ctx context.Context, req *GetRequest) (*GetResponse, error) {
-	log.Printf(req.GetShortenedUrl())
 	originalURL, ok := h.urlRepository.GetURL(req.GetShortenedUrl())
-	if ok != true {
+	if !ok {
 		return nil, errors.New("NotFound")
 	}
 	return &GetResponse{OriginalUrl: originalURL.URL}, nil

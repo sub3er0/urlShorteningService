@@ -3,7 +3,7 @@ syntax = "proto3";
 
 package grpc_server;
 
-option go_package = "grpc_server/";
+option go_package = "shortenergrpcserver/";
 
 // Сервис для сокращения URL
 service URLShortener {
