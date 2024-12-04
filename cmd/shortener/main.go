@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-chi/chi/v5"
+	"github.com/sub3er0/urlShorteningService/cmd/shortener/grpc_server"
 	"github.com/sub3er0/urlShorteningService/internal/config"
 	"github.com/sub3er0/urlShorteningService/internal/cookie"
 	"github.com/sub3er0/urlShorteningService/internal/gzip"
@@ -13,7 +14,10 @@ import (
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/acme/autocert"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -127,6 +131,26 @@ func main() {
 		}
 
 		close(idleConnsClosed)
+	}()
+
+	grpcServer := grpc.NewServer()
+	grpcHandlers := grpc_server.NewGRPCHandlers(
+		urlRepository,
+		userRepository,
+		cookieManager,
+	)
+	reflection.Register(grpcServer)
+	grpc_server.RegisterURLShortenerServer(grpcServer, grpcHandlers)
+
+	listener, err := net.Listen("tcp", ":50051")
+	if err != nil {
+		log.Fatalf("Failed to listen: %v", err)
+	}
+
+	go func() {
+		if err := grpcServer.Serve(listener); err != nil {
+			log.Fatalf("gRPC server failed: %v", err)
+		}
 	}()
 
 	if cfg.EnableHTTPS {

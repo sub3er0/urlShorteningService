@@ -306,7 +306,7 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 		shortKey, getShortURLError := us.getShortURL(requestBodyRow.OriginalURL)
 
 		if getShortURLError != nil {
-			shortKey = generateShortKey()
+			shortKey = GenerateShortKey()
 		}
 
 		responseBody := BatchResponseBodyItem{
@@ -445,7 +445,7 @@ func (us *URLShortener) getShortKey(postURL string) (string, error) {
 		return shortKey, ErrShortURLExists
 	}
 
-	shortKey = generateShortKey()
+	shortKey = GenerateShortKey()
 	err = us.URLRepository.Save(shortKey, postURL, us.CookieManager.GetActualCookieValue())
 
 	if err != nil {
@@ -455,10 +455,10 @@ func (us *URLShortener) getShortKey(postURL string) (string, error) {
 	return shortKey, nil
 }
 
-// generateShortKey создает новый короткий ключ длиной 6 знаков, состоящий из
+// GenerateShortKey создает новый короткий ключ длиной 6 знаков, состоящий из
 // букв и цифр. Использует криптографически безопасный генератор случайных чисел.
 // Возвращает сгенерированный короткий ключ.
-func generateShortKey() string {
+func GenerateShortKey() string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	const keyLength = 6
 

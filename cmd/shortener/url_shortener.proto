@@ -1,0 +1,51 @@
+
+syntax = "proto3";
+
+package grpc_server;
+
+option go_package = "grpc_server/";
+
+// Сервис для сокращения URL
+service URLShortener {
+  rpc ShortenURL(ShortenRequest) returns (ShortenResponse);
+  rpc GetURL(GetRequest) returns (GetResponse);
+  rpc GetInternalStats(StatsRequest) returns (StatsResponse);
+  rpc Ping(PingRequest) returns (PingResponse);
+}
+
+// Запрос для сокращения URL
+message ShortenRequest {
+  string original_url = 1;
+}
+
+// Ответ с сокращенным URL
+message ShortenResponse {
+  string shortened_url = 1;
+}
+
+// Запрос для получения оригинального URL
+message GetRequest {
+  string shortened_url = 1;
+}
+
+// Ответ с оригинальным URL
+message GetResponse {
+  string original_url = 1;
+}
+
+// Запрос для получения статистики
+message StatsRequest {}
+
+// Ответ для статистики
+message StatsResponse {
+  int64 urls = 1;
+  int64 users = 2;
+}
+
+// Запрос для Ping
+message PingRequest {}
+
+// Ответ от Ping
+message PingResponse {
+  string message = 1;
+}
