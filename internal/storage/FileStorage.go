@@ -33,6 +33,10 @@ func (fs *FileStorage) Close() {}
 // Возвращает ошибку, если сохранение не удалось.
 func (fs *FileStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
 	urlCount, err := fs.GetURLCount()
+	if err != nil {
+		return err
+	}
+
 	for i := range dataStorageRows {
 		urlCount++
 		dataStorageRows[i].ID = urlCount
@@ -179,14 +183,14 @@ func (fs *FileStorage) GetShortURL(URL string) (string, error) {
 //
 // Возвращает ошибку, если сохранение не удалось.
 func (fs *FileStorage) Save(ShortURL string, URL string, userID string) error {
-	Id, err := fs.GetURLCount()
+	ID, err := fs.GetURLCount()
 
 	if err != nil {
 		return err
 	}
 
 	row := DataStorageRow{
-		ID:       Id,
+		ID:       ID,
 		ShortURL: ShortURL,
 		URL:      URL,
 	}
