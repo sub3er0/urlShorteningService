@@ -32,7 +32,11 @@ func (fs *FileStorage) Close() {}
 // SaveBatch сохраняет пакет данных, представленных в виде массива DataStorageRow.
 // Возвращает ошибку, если сохранение не удалось.
 func (fs *FileStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
-	urlCount := fs.GetURLCount()
+	urlCount, err := fs.GetURLCount()
+	if err != nil {
+		return err
+	}
+
 	for i := range dataStorageRows {
 		urlCount++
 		dataStorageRows[i].ID = urlCount
@@ -108,11 +112,11 @@ func (fs *FileStorage) GetURL(shortURL string) (GetURLRow, bool) {
 }
 
 // GetURLCount возвращает количество сохранённых URL в хранилище.
-func (fs *FileStorage) GetURLCount() int {
+func (fs *FileStorage) GetURLCount() (int, error) {
 	file, err := os.OpenFile(fs.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
 
 	if err != nil {
-		return 0
+		return 0, err
 	}
 
 	defer file.Close()
@@ -129,7 +133,7 @@ func (fs *FileStorage) GetURLCount() int {
 		count++
 	}
 
-	return count
+	return count, nil
 }
 
 // GetShortURL ищет короткий URL для заданного оригинального URL.
@@ -179,8 +183,14 @@ func (fs *FileStorage) GetShortURL(URL string) (string, error) {
 //
 // Возвращает ошибку, если сохранение не удалось.
 func (fs *FileStorage) Save(ShortURL string, URL string, userID string) error {
+	ID, err := fs.GetURLCount()
+
+	if err != nil {
+		return err
+	}
+
 	row := DataStorageRow{
-		ID:       fs.GetURLCount(),
+		ID:       ID,
 		ShortURL: ShortURL,
 		URL:      URL,
 	}
@@ -272,4 +282,9 @@ func (fs *FileStorage) GetUserUrls(uniqueID string) ([]UserUrlsResponseBodyItem,
 // В данной реализации ничего не делает и всегда возвращает nil.
 func (fs *FileStorage) DeleteUserUrls(uniqueID string, shortURLS []string) error {
 	return nil
+}
+
+// GetUsersCount получение количества пользователей
+func (fs *FileStorage) GetUsersCount() (int, error) {
+	return 0, nil
 }

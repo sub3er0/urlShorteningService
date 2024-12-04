@@ -97,7 +97,7 @@ func TestURLStorage_GetURLCount(t *testing.T) {
 	ctx := context.Background()
 	storage := &URLStorage{conn: mock, ctx: ctx}
 
-	count := storage.GetURLCount()
+	count, _ := storage.GetURLCount()
 	assert.Equal(t, 0, count, "Expected URL count to be 0")
 }
 

@@ -53,4 +53,7 @@ type DBConnectionInterface interface {
 	// SendBatch отправляет пакет запросов в базу данных.
 	// Возвращает результаты отправленных батчей.
 	SendBatch(ctx context.Context, b *pgx.Batch) pgx.BatchResults
+
+	// QueryRow возвращает одну строку результата
+	QueryRow(context.Context, string, ...interface{}) pgx.Row
 }
