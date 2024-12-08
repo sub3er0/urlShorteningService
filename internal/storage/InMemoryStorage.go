@@ -54,8 +54,8 @@ func (ims *InMemoryStorage) GetURL(shortURL string) (GetURLRow, bool) {
 }
 
 // GetURLCount возвращает количество сохранённых URL в хранилище.
-func (ims *InMemoryStorage) GetURLCount() int {
-	return len(ims.Urls)
+func (ims *InMemoryStorage) GetURLCount() (int, error) {
+	return len(ims.Urls), nil
 }
 
 // GetShortURL ищет короткий URL для заданного оригинального URL.
@@ -106,4 +106,9 @@ func (ims *InMemoryStorage) GetUserUrls(uniqueID string) ([]UserUrlsResponseBody
 // В данной реализации ничего не делает и всегда возвращает nil.
 func (ims *InMemoryStorage) DeleteUserUrls(uniqueID string, shortURLS []string) error {
 	return nil
+}
+
+// GetUsersCount получение количества пользователей
+func (ims *InMemoryStorage) GetUsersCount() (int, error) {
+	return 0, nil
 }

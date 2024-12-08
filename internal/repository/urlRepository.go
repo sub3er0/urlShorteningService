@@ -9,7 +9,7 @@ type URLRepositoryInterface interface {
 	GetURL(shortURL string) (storage.GetURLRow, bool)
 
 	// GetURLCount возвращает общее количество URL в репозитории.
-	GetURLCount() int
+	GetURLCount() (int, error)
 
 	// GetShortURL возвращает короткий URL для заданного полного URL.
 	// Если в репозитории нет запись, возвращается ошибка.
@@ -48,7 +48,7 @@ func (ur *URLRepository) GetURL(shortURL string) (storage.GetURLRow, bool) {
 }
 
 // GetURLCount возвращает количество URL.
-func (ur *URLRepository) GetURLCount() int {
+func (ur *URLRepository) GetURLCount() (int, error) {
 	return ur.Storage.GetURLCount()
 }
 

@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/url"
 	"sync"
@@ -31,6 +32,9 @@ type URLShortener struct {
 
 	// BaseURL представляет базовый адрес, который используется для сокращённых URL.
 	BaseURL string
+
+	// TrustedSubnet доверенная подсеть
+	TrustedSubnet string
 
 	// CookieManager управляет аутентификацией и обработкой куки в приложении.
 	CookieManager cookie.CookieManagerInterface
@@ -67,6 +71,9 @@ type URLShortenerInterface interface {
 
 	// Worker Удаляет короткие URL
 	Worker()
+
+	// IsIPInTrustedSubnet проверка доверенной подсети
+	IsIPInTrustedSubnet(ip string) bool
 }
 
 // JSONResponseBody представляет структуру для ответа в формате JSON.
@@ -166,6 +173,61 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetInternalStats Получение статистики сервиса
+func (us *URLShortener) GetInternalStats(w http.ResponseWriter, r *http.Request) {
+	clientIP := r.Header.Get("X-Real-IP")
+	if !us.IsIPInTrustedSubnet(clientIP) {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	urlsCount, err := us.URLRepository.GetURLCount()
+
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	usersCount, err := us.UserRepository.GetUsersCount()
+
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// Формируем ответ
+	stats := map[string]int{
+		"urls":  urlsCount,
+		"users": usersCount,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if err := json.NewEncoder(w).Encode(stats); err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
+}
+
+// проверка, входит ли IP-адрес в доверенную подсеть
+func (us *URLShortener) IsIPInTrustedSubnet(ip string) bool {
+	if us.TrustedSubnet == "" {
+		return false
+	}
+
+	_, subnet, err := net.ParseCIDR(us.TrustedSubnet)
+	if err != nil {
+		return false
+	}
+
+	clientIP := net.ParseIP(ip)
+	if clientIP == nil {
+		return false
+	}
+
+	return subnet.Contains(clientIP)
+}
+
 // PingHandler Проверяет состояние соединения с репозиторием
 func (us *URLShortener) PingHandler(w http.ResponseWriter, r *http.Request) {
 	ok := us.URLRepository.Ping()
@@ -247,7 +309,7 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 		shortKey, getShortURLError := us.getShortURL(requestBodyRow.OriginalURL)
 
 		if getShortURLError != nil {
-			shortKey = generateShortKey()
+			shortKey = GenerateShortKey()
 		}
 
 		responseBody := BatchResponseBodyItem{
@@ -386,7 +448,7 @@ func (us *URLShortener) getShortKey(postURL string) (string, error) {
 		return shortKey, ErrShortURLExists
 	}
 
-	shortKey = generateShortKey()
+	shortKey = GenerateShortKey()
 	err = us.URLRepository.Save(shortKey, postURL, us.CookieManager.GetActualCookieValue())
 
 	if err != nil {
@@ -396,10 +458,10 @@ func (us *URLShortener) getShortKey(postURL string) (string, error) {
 	return shortKey, nil
 }
 
-// generateShortKey создает новый короткий ключ длиной 6 знаков, состоящий из
+// GenerateShortKey создает новый короткий ключ длиной 6 знаков, состоящий из
 // букв и цифр. Использует криптографически безопасный генератор случайных чисел.
 // Возвращает сгенерированный короткий ключ.
-func generateShortKey() string {
+func GenerateShortKey() string {
 	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	const keyLength = 6
 

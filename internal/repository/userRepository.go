@@ -17,6 +17,9 @@ type UserRepositoryInterface interface {
 
 	// DeleteUserUrls удаляет указанный список коротких URL для указанного пользователя.
 	DeleteUserUrls(uniqueID string, shortURLs []string) error
+
+	// GetUsersCount получение количества пользователей
+	GetUsersCount() (int, error)
 }
 
 // UserRepository реализует UserRepositoryInterface.
@@ -42,4 +45,9 @@ func (ur *UserRepository) GetUserUrls(uniqueID string) ([]storage.UserUrlsRespon
 // DeleteUserUrls удаляет указанные URL-адреса для указанного уникального ID пользователя.
 func (ur *UserRepository) DeleteUserUrls(uniqueID string, shortURLS []string) error {
 	return ur.Storage.DeleteUserUrls(uniqueID, shortURLS)
+}
+
+// GetUsersCount получение количества пользователей
+func (ur *UserRepository) GetUsersCount() (int, error) {
+	return ur.Storage.GetUsersCount()
 }

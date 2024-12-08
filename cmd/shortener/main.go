@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-chi/chi/v5"
+	"github.com/sub3er0/urlShorteningService/cmd/shortener/shortenergrpcserver"
 	"github.com/sub3er0/urlShorteningService/internal/config"
 	"github.com/sub3er0/urlShorteningService/internal/cookie"
 	"github.com/sub3er0/urlShorteningService/internal/gzip"
@@ -13,7 +14,10 @@ import (
 	"github.com/sub3er0/urlShorteningService/internal/storage"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/acme/autocert"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -77,6 +81,7 @@ func main() {
 		URLRepository:  urlRepository,
 		ServerAddress:  cfg.ServerAddress,
 		BaseURL:        cfg.BaseURL,
+		TrustedSubnet:  cfg.TrustedSubnet,
 		CookieManager:  &cookieManager,
 		RemoveChan:     make(chan string),
 	}
@@ -99,6 +104,7 @@ func main() {
 		r.Get("/{id}", shortenerInstance.GetHandler)
 		r.Post("/api/shorten", shortenerInstance.JSONPostHandler)
 		r.Post("/api/shorten/batch", shortenerInstance.JSONBatchHandler)
+		r.Get("/api/internal/stats", shortenerInstance.GetInternalStats)
 
 		r.With(cookieManager.AuthMiddleware).Get("/api/user/urls", shortenerInstance.GetUserUrls)
 		r.With(cookieManager.AuthMiddleware).Delete("/api/user/urls", shortenerInstance.DeleteUserUrls)
@@ -125,6 +131,26 @@ func main() {
 		}
 
 		close(idleConnsClosed)
+	}()
+
+	grpcServer := grpc.NewServer()
+	grpcHandlers := shortenergrpcserver.NewGRPCHandlers(
+		urlRepository,
+		userRepository,
+		cookieManager,
+	)
+	reflection.Register(grpcServer)
+	shortenergrpcserver.RegisterURLShortenerServer(grpcServer, grpcHandlers)
+
+	listener, err := net.Listen("tcp", ":50051")
+	if err != nil {
+		log.Fatalf("Failed to listen: %v", err)
+	}
+
+	go func() {
+		if err := grpcServer.Serve(listener); err != nil {
+			log.Fatalf("gRPC server failed: %v", err)
+		}
 	}()
 
 	if cfg.EnableHTTPS {

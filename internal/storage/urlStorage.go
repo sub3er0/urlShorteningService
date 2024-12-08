@@ -19,7 +19,7 @@ type URLStorageInterface interface {
 	GetURL(shortURL string) (GetURLRow, bool)
 
 	// GetURLCount возвращает общее количество URL в хранилище.
-	GetURLCount() int
+	GetURLCount() (int, error)
 
 	// GetShortURL возвращает короткий формат URL для заданного полного URL.
 	GetShortURL(URL string) (string, error)
@@ -90,8 +90,17 @@ func (us *URLStorage) GetURL(shortURL string) (GetURLRow, bool) {
 }
 
 // GetURLCount возвращает общее количество URL в хранилище.
-func (us *URLStorage) GetURLCount() int {
-	return 0
+func (us *URLStorage) GetURLCount() (int, error) {
+	var count int
+	query := "SELECT COUNT(*) FROM urls"
+
+	row := us.conn.QueryRow(us.ctx, query)
+
+	if err := row.Scan(&count); err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
 
 // GetShortURL возвращает короткий URL для указанного полного URL.

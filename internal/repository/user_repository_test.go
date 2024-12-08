@@ -49,6 +49,11 @@ func (m *MockUserStorage) Close() {
 	m.Called()
 }
 
+func (m *MockUserStorage) GetUsersCount() (int, error) {
+	args := m.Called()
+	return args.Int(0), args.Error(1)
+}
+
 func TestIsUserExist(t *testing.T) {
 	mockStorage := new(MockUserStorage)
 	repo := &repository.UserRepository{Storage: mockStorage}

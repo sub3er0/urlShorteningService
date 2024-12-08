@@ -29,9 +29,9 @@ func (m *MockURLRepository) GetURL(shortURL string) (storage.GetURLRow, bool) {
 }
 
 // GetURLCount - реализует метод интерфейса URLRepositoryInterface.
-func (m *MockURLRepository) GetURLCount() int {
+func (m *MockURLRepository) GetURLCount() (int, error) {
 	args := m.Called()
-	return args.Int(0)
+	return args.Int(0), args.Error(1)
 }
 
 // GetShortURL - реализует метод интерфейса URLRepositoryInterface.
@@ -85,6 +85,12 @@ func (m *MockUserRepository) SaveUser(uniqueID string) error {
 func (m *MockUserRepository) GetUserUrls(uniqueID string) ([]storage.UserUrlsResponseBodyItem, error) {
 	args := m.Called(uniqueID)
 	return args.Get(0).([]storage.UserUrlsResponseBodyItem), args.Error(1)
+}
+
+// GetUsersCount получение количества пользователей
+func (m *MockUserRepository) GetUsersCount() (int, error) {
+	args := m.Called()
+	return args.Int(0), args.Error(1)
 }
 
 // DeleteUserUrls - реализует метод интерфейса UserRepositoryInterface.
@@ -290,8 +296,10 @@ func TestPingHandler_ConnectionError(t *testing.T) {
 // MockURLShortener - мок для интерфейса URLShortenerInterface
 type MockURLShortener struct {
 	mock.Mock
-	URLRepository repository.URLRepositoryInterface
-	BaseURL       string
+	URLRepository  repository.URLRepositoryInterface
+	UserRepository repository.UserRepositoryInterface
+	BaseURL        string
+	real           *URLShortener // Включаем реальную реализацию
 }
 
 // GetHandler - реализует метод интерфейса
@@ -327,6 +335,12 @@ func (m *MockURLShortener) DeleteUserUrls(w http.ResponseWriter, r *http.Request
 // Worker - реализует метод интерфейса
 func (m *MockURLShortener) Worker() {
 	m.Called()
+}
+
+// IsIPInTrustedSubnet - реализует метод интерфейса
+func (m *MockURLShortener) IsIPInTrustedSubnet(ip string) bool {
+	args := m.Called(ip)
+	return args.Bool(0)
 }
 
 func TestJSONPostHandler_Success(t *testing.T) {
@@ -893,4 +907,52 @@ func TestDeleteUserUrls_EmptyBody(t *testing.T) {
 	res := w.Result()
 	res.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode) // Ожидаем статус 400 Bad Request
+}
+
+func TestGetInternalStats(t *testing.T) {
+	// Создайте моки
+	mockURLRepo := new(MockURLRepository)
+	mockUserRepo := new(MockUserRepository)
+
+	urlShortener := &URLShortener{
+		URLRepository:  mockURLRepo,
+		UserRepository: mockUserRepo,
+		TrustedSubnet:  "127.0.0.0/8",
+	}
+
+	// Настройте тестовые данные
+	mockURLRepo.On("GetURLCount").Return(42, nil)
+	mockUserRepo.On("GetUsersCount").Return(13, nil)
+
+	// Создайте запрос и ответ для тестирования
+	req := httptest.NewRequest("GET", "/api/internal/stats", nil)
+	req.Header.Set("X-Real-IP", "127.0.0.1") // Установите IP-адрес
+	w := httptest.NewRecorder()
+
+	urlShortener.GetInternalStats(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var stats map[string]int
+	err := json.Unmarshal(w.Body.Bytes(), &stats)
+	assert.NoError(t, err)
+	assert.Equal(t, 42, stats["urls"])
+	assert.Equal(t, 13, stats["users"])
+
+	mockURLRepo.AssertExpectations(t)
+	mockUserRepo.AssertExpectations(t)
+}
+
+func TestGetInternalStatsForbidden(t *testing.T) {
+	urlShortener := &URLShortener{
+		TrustedSubnet: "127.0.0.0/8",
+	}
+
+	req := httptest.NewRequest("GET", "/api/internal/stats", nil)
+	req.Header.Set("X-Real-IP", "0.0.0.0") // Установите IP, который не в доверенной подсети
+	w := httptest.NewRecorder()
+
+	urlShortener.GetInternalStats(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
 }
