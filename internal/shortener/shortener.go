@@ -71,6 +71,9 @@ type URLShortenerInterface interface {
 
 	// Worker Удаляет короткие URL
 	Worker()
+
+	// IsIPInTrustedSubnet проверка доверенной подсети
+	IsIPInTrustedSubnet(ip string) bool
 }
 
 // JSONResponseBody представляет структуру для ответа в формате JSON.
@@ -173,7 +176,7 @@ func (us *URLShortener) GetHandler(w http.ResponseWriter, r *http.Request) {
 // GetInternalStats Получение статистики сервиса
 func (us *URLShortener) GetInternalStats(w http.ResponseWriter, r *http.Request) {
 	clientIP := r.Header.Get("X-Real-IP")
-	if !us.isIPInTrustedSubnet(clientIP) {
+	if !us.IsIPInTrustedSubnet(clientIP) {
 		http.Error(w, "Forbidden", http.StatusForbidden)
 		return
 	}
@@ -207,7 +210,7 @@ func (us *URLShortener) GetInternalStats(w http.ResponseWriter, r *http.Request)
 }
 
 // проверка, входит ли IP-адрес в доверенную подсеть
-func (us *URLShortener) isIPInTrustedSubnet(ip string) bool {
+func (us *URLShortener) IsIPInTrustedSubnet(ip string) bool {
 	if us.TrustedSubnet == "" {
 		return false
 	}

@@ -44,14 +44,9 @@ func (fs *FileStorage) SaveBatch(dataStorageRows []DataStorageRow) error {
 
 	var jsonRows []byte
 
-	for _, dataStorageRow := range dataStorageRows {
-		jsonRow, err := json.Marshal(dataStorageRow)
-		jsonRows = append(jsonRows, jsonRow...)
-		jsonRows = append(jsonRows, '\n')
-
-		if err != nil {
-			return err
-		}
+	jsonRows, err = json.Marshal(dataStorageRows)
+	if err != nil {
+		return err
 	}
 
 	file, err := os.OpenFile(fs.FileStoragePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
