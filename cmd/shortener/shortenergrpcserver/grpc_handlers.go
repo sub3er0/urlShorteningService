@@ -94,28 +94,29 @@ func CookieAuthInterceptor(cookieManager *cookie.CookieManager) grpc.UnaryServer
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (resp interface{}, err error) {
-		md, ok := metadata.FromIncomingContext(ctx)
-		if !ok {
-			return nil, status.Errorf(codes.Unauthenticated, "missing metadata")
+		if info.FullMethod == "/grpc_server.URLShortener/GetUserUrls" {
+			md, ok := metadata.FromIncomingContext(ctx)
+			if !ok {
+				return nil, status.Errorf(codes.Unauthenticated, "missing metadata")
+			}
+
+			// Извлекаем значение куки
+			cookies := md[cookie.CookieName]
+			if len(cookies) == 0 || !cookie.VerifyCookie(cookies[0]) {
+				return nil, status.Errorf(codes.Unauthenticated, "Unauthorized")
+			}
+
+			userID, ok := cookie.GetUserIDFromCookie(cookies[0])
+			if !ok {
+				return nil, status.Errorf(codes.Unauthenticated, "Unauthorized")
+			}
+
+			isUserExist := cookieManager.Storage.IsUserExist(userID)
+			if !isUserExist {
+				return nil, status.Errorf(codes.Unauthenticated, "Unauthorized")
+			}
 		}
 
-		// Извлекаем значение куки
-		cookies := md["cookie"]
-		if len(cookies) == 0 || !cookie.VerifyCookie(cookies[0]) {
-			return nil, status.Errorf(codes.Unauthenticated, "Unauthorized")
-		}
-
-		userID, ok := cookie.GetUserIDFromCookie(cookies[0])
-		if !ok {
-			return nil, status.Errorf(codes.Unauthenticated, "Unauthorized")
-		}
-
-		isUserExist := cookieManager.Storage.IsUserExist(userID)
-		if !isUserExist {
-			return nil, status.Errorf(codes.Unauthenticated, "Unauthorized")
-		}
-
-		// Вызовите следующий обработчик
 		return handler(ctx, req)
 	}
 }
@@ -174,6 +175,39 @@ func NewGRPCHandlers(urlShortener *shortener.URLShortener, cookieManager *cookie
 	return &GRPCHandlers{us: urlShortener, cm: cookieManager}
 }
 
+// DeleteUserUrls удаляет короткие URL
+func (h *GRPCHandlers) DeleteUserUrls(ctx context.Context, req *DeleteUserUrlsRequest) (*DeleteUserUrlsResponse, error) {
+	for _, shortURL := range req.GetShortUrls() {
+		h.us.RemoveChan <- shortURL
+	}
+
+	return &DeleteUserUrlsResponse{Message: "URLs deleted successfully"}, nil
+}
+
+// GetUserUrls получает URL пользователя
+func (h *GRPCHandlers) GetUserUrls(ctx context.Context, req *UserRequest) (*UserUrlsResponse, error) {
+	userID := h.us.CookieManager.GetActualCookieValue()
+	if userID == "" {
+		return nil, status.Errorf(codes.Unauthenticated, "User not authenticated")
+	}
+
+	urls, err := h.us.UserRepository.GetUserUrls(userID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "Internal Server Error")
+	}
+
+	responseUrls := make([]*UserUrlsResponseBodyItem, 0, len(urls))
+
+	for _, url := range urls {
+		responseUrls = append(responseUrls, &UserUrlsResponseBodyItem{
+			OriginalUrl: url.OriginalURL,
+			ShortUrl:    url.ShortURL,
+		})
+	}
+
+	return &UserUrlsResponse{Urls: responseUrls}, nil
+}
+
 // BatchShortenURL обрабатывает пакетные запросы на сокращение URL
 func (h *GRPCHandlers) BatchShortenURL(ctx context.Context, req *BatchShortenRequest) (*BatchShortenResponse, error) {
 	var responseBodyBatch []*BatchResponseBodyItem
@@ -186,8 +220,8 @@ func (h *GRPCHandlers) BatchShortenURL(ctx context.Context, req *BatchShortenReq
 		}
 
 		responseBody := &BatchResponseBodyItem{
-			CorrelationID: requestBodyRow.CorrelationId,
-			ShortURL:      h.us.BaseURL + shortKey,
+			CorrelationId: requestBodyRow.CorrelationId,
+			ShortUrl:      h.us.BaseURL + shortKey,
 		}
 
 		responseBodyBatch = append(responseBodyBatch, responseBody)

@@ -12,8 +12,31 @@ service URLShortener {
   rpc GetURL(GetRequest) returns (GetResponse);
   rpc GetInternalStats(StatsRequest) returns (StatsResponse);
   rpc Ping(PingRequest) returns (PingResponse);
-  rpc GetUserUrls(PingRequest) returns (PingResponse);
-  rpc DeleteUserUrls(PingRequest) returns (PingResponse);
+  rpc GetUserUrls(UserRequest) returns (UserUrlsResponse);
+  rpc DeleteUserUrls(DeleteUserUrlsRequest) returns (DeleteUserUrlsResponse);
+}
+
+// Сообщения
+message DeleteUserUrlsRequest {
+  repeated string short_urls = 1; // Список коротких URL для удаления
+}
+
+message DeleteUserUrlsResponse {
+  string message = 1; // Сообщение об успешном удалении
+}
+
+// Сообщения
+message UserRequest {
+  string user_id = 1; // Или идентификатор куки, который вы используете
+}
+
+message UserUrlsResponse {
+  repeated UserUrlsResponseBodyItem urls = 1; // Список URL
+}
+
+message UserUrlsResponseBodyItem {
+  string original_url = 1; // Полный оригинальный URL
+  string short_url = 2;    // Короткий URL
 }
 
 // Запрос для пакетного сокращения URL

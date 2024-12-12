@@ -102,6 +102,7 @@ func initServers(
 			shortenergrpcserver.LoggingInterceptor,
 			shortenergrpcserver.GzipInterceptor,
 			shortenergrpcserver.CookieInterceptor(cookieManager),
+			shortenergrpcserver.CookieAuthInterceptor(cookieManager),
 		),
 	)
 

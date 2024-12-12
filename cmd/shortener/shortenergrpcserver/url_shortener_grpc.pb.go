@@ -39,8 +39,8 @@ type URLShortenerClient interface {
 	GetURL(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
 	GetInternalStats(ctx context.Context, in *StatsRequest, opts ...grpc.CallOption) (*StatsResponse, error)
 	Ping(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
-	GetUserUrls(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
-	DeleteUserUrls(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error)
+	GetUserUrls(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*UserUrlsResponse, error)
+	DeleteUserUrls(ctx context.Context, in *DeleteUserUrlsRequest, opts ...grpc.CallOption) (*DeleteUserUrlsResponse, error)
 }
 
 type uRLShortenerClient struct {
@@ -101,9 +101,9 @@ func (c *uRLShortenerClient) Ping(ctx context.Context, in *PingRequest, opts ...
 	return out, nil
 }
 
-func (c *uRLShortenerClient) GetUserUrls(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error) {
+func (c *uRLShortenerClient) GetUserUrls(ctx context.Context, in *UserRequest, opts ...grpc.CallOption) (*UserUrlsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PingResponse)
+	out := new(UserUrlsResponse)
 	err := c.cc.Invoke(ctx, URLShortener_GetUserUrls_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -111,9 +111,9 @@ func (c *uRLShortenerClient) GetUserUrls(ctx context.Context, in *PingRequest, o
 	return out, nil
 }
 
-func (c *uRLShortenerClient) DeleteUserUrls(ctx context.Context, in *PingRequest, opts ...grpc.CallOption) (*PingResponse, error) {
+func (c *uRLShortenerClient) DeleteUserUrls(ctx context.Context, in *DeleteUserUrlsRequest, opts ...grpc.CallOption) (*DeleteUserUrlsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(PingResponse)
+	out := new(DeleteUserUrlsResponse)
 	err := c.cc.Invoke(ctx, URLShortener_DeleteUserUrls_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
@@ -132,8 +132,8 @@ type URLShortenerServer interface {
 	GetURL(context.Context, *GetRequest) (*GetResponse, error)
 	GetInternalStats(context.Context, *StatsRequest) (*StatsResponse, error)
 	Ping(context.Context, *PingRequest) (*PingResponse, error)
-	GetUserUrls(context.Context, *PingRequest) (*PingResponse, error)
-	DeleteUserUrls(context.Context, *PingRequest) (*PingResponse, error)
+	GetUserUrls(context.Context, *UserRequest) (*UserUrlsResponse, error)
+	DeleteUserUrls(context.Context, *DeleteUserUrlsRequest) (*DeleteUserUrlsResponse, error)
 	mustEmbedUnimplementedURLShortenerServer()
 }
 
@@ -159,10 +159,10 @@ func (UnimplementedURLShortenerServer) GetInternalStats(context.Context, *StatsR
 func (UnimplementedURLShortenerServer) Ping(context.Context, *PingRequest) (*PingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
 }
-func (UnimplementedURLShortenerServer) GetUserUrls(context.Context, *PingRequest) (*PingResponse, error) {
+func (UnimplementedURLShortenerServer) GetUserUrls(context.Context, *UserRequest) (*UserUrlsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUserUrls not implemented")
 }
-func (UnimplementedURLShortenerServer) DeleteUserUrls(context.Context, *PingRequest) (*PingResponse, error) {
+func (UnimplementedURLShortenerServer) DeleteUserUrls(context.Context, *DeleteUserUrlsRequest) (*DeleteUserUrlsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteUserUrls not implemented")
 }
 func (UnimplementedURLShortenerServer) mustEmbedUnimplementedURLShortenerServer() {}
@@ -277,7 +277,7 @@ func _URLShortener_Ping_Handler(srv interface{}, ctx context.Context, dec func(i
 }
 
 func _URLShortener_GetUserUrls_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PingRequest)
+	in := new(UserRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -289,13 +289,13 @@ func _URLShortener_GetUserUrls_Handler(srv interface{}, ctx context.Context, dec
 		FullMethod: URLShortener_GetUserUrls_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(URLShortenerServer).GetUserUrls(ctx, req.(*PingRequest))
+		return srv.(URLShortenerServer).GetUserUrls(ctx, req.(*UserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _URLShortener_DeleteUserUrls_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(PingRequest)
+	in := new(DeleteUserUrlsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -307,7 +307,7 @@ func _URLShortener_DeleteUserUrls_Handler(srv interface{}, ctx context.Context, 
 		FullMethod: URLShortener_DeleteUserUrls_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(URLShortenerServer).DeleteUserUrls(ctx, req.(*PingRequest))
+		return srv.(URLShortenerServer).DeleteUserUrls(ctx, req.(*DeleteUserUrlsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
