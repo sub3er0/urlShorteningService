@@ -45,22 +45,22 @@ func (cm *CookieManager) GetActualCookieValue() string {
 }
 
 var (
-	secretKey  = []byte("secret_key")
-	cookieName = "user_info"
+	SecretKey  = []byte("secret_key")
+	CookieName = "user_info"
 )
 
-// signCookie вычисляет HMAC-подпись для данных.
+// SignCookie вычисляет HMAC-подпись для данных.
 // Используется для проверки подлинности куки.
-func signCookie(data string) string {
-	h := hmac.New(sha256.New, secretKey)
+func SignCookie(data string) string {
+	h := hmac.New(sha256.New, SecretKey)
 	h.Write([]byte(data))
 	signature := h.Sum(nil)
 
 	return base64.RawURLEncoding.EncodeToString(signature)
 }
 
-// verifyCookie проверяет корректность куки, сравнивая подпись с ожидаемой.
-func verifyCookie(str string) bool {
+// VerifyCookie проверяет корректность куки, сравнивая подпись с ожидаемой.
+func VerifyCookie(str string) bool {
 	parts := strings.Split(str, ".")
 	if len(parts) != 2 {
 		return false
@@ -68,13 +68,13 @@ func verifyCookie(str string) bool {
 
 	dataStr := parts[0]
 	sigStr := parts[1]
-	expected := signCookie(dataStr)
+	expected := SignCookie(dataStr)
 
 	return sigStr == expected
 }
 
-// getUserIDFromCookie извлекает идентификатор пользователя из куки.
-func getUserIDFromCookie(str string) (string, bool) {
+// GetUserIDFromCookie извлекает идентификатор пользователя из куки.
+func GetUserIDFromCookie(str string) (string, bool) {
 	parts := strings.Split(str, ".")
 	if len(parts) != 2 {
 		return "", false
@@ -83,8 +83,8 @@ func getUserIDFromCookie(str string) (string, bool) {
 	return parts[0], true
 }
 
-// generateUserID генерирует уникальный идентификатор пользователя.
-func generateUserID() string {
+// GenerateUserID генерирует уникальный идентификатор пользователя.
+func GenerateUserID() string {
 	b := make([]byte, 16)
 	rand.Read(b)
 	return base64.URLEncoding.EncodeToString(b)
@@ -93,14 +93,14 @@ func generateUserID() string {
 // CookieHandler оборачивает HTTP-обработчик, добавляя логику работы с куками.
 func (cm *CookieManager) CookieHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie(cookieName)
+		cookie, err := r.Cookie(CookieName)
 		createNewCookie := false
 		var userID string
 
-		if err != nil || !verifyCookie(cookie.Value) {
+		if err != nil || !VerifyCookie(cookie.Value) {
 			createNewCookie = true
 		} else {
-			userID, _ = getUserIDFromCookie(cookie.Value)
+			userID, _ = GetUserIDFromCookie(cookie.Value)
 			isUserExist := cm.Storage.IsUserExist(userID)
 
 			if isUserExist {
@@ -111,11 +111,11 @@ func (cm *CookieManager) CookieHandler(h http.Handler) http.Handler {
 		}
 
 		if createNewCookie {
-			userID = generateUserID()
-			newCookieValue := userID + "." + signCookie(userID)
+			userID = GenerateUserID()
+			newCookieValue := userID + "." + SignCookie(userID)
 			cm.Storage.SaveUser(userID)
 			http.SetCookie(w, &http.Cookie{
-				Name:     cookieName,
+				Name:     CookieName,
 				Value:    newCookieValue,
 				Path:     "/",
 				Expires:  time.Now().AddDate(10, 0, 0),

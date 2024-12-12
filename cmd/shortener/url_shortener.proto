@@ -8,11 +8,33 @@ option go_package = "shortenergrpcserver/";
 // Сервис для сокращения URL
 service URLShortener {
   rpc ShortenURL(ShortenRequest) returns (ShortenResponse);
+  rpc BatchShortenURL(BatchShortenRequest) returns (BatchShortenResponse);
   rpc GetURL(GetRequest) returns (GetResponse);
   rpc GetInternalStats(StatsRequest) returns (StatsResponse);
   rpc Ping(PingRequest) returns (PingResponse);
+  rpc GetUserUrls(PingRequest) returns (PingResponse);
+  rpc DeleteUserUrls(PingRequest) returns (PingResponse);
 }
 
+// Запрос для пакетного сокращения URL
+message BatchShortenRequest {
+  repeated BatchRequestBody original_urls = 1; // Пакетный запрос
+}
+
+// Строка для пакета
+message BatchRequestBody {
+  string correlation_id = 1; // Идентификатор корреляции
+  string original_url = 2; // Исходный URL
+}
+
+message BatchShortenResponse {
+  repeated BatchResponseBodyItem short_urls = 1; // Сокращенные URL
+}
+
+message BatchResponseBodyItem {
+  string correlation_id = 1; // Идентификатор корреляции
+  string short_url = 2; // Сокращенный URL
+}
 // Запрос для сокращения URL
 message ShortenRequest {
   string original_url = 1;

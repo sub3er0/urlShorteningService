@@ -88,6 +88,78 @@ func main() {
 
 	go shortenerInstance.Worker()
 
+	initServers(shortenerInstance, &cookieManager, cfg)
+}
+
+func initServers(
+	shortenerInstance *shortener.URLShortener,
+	cookieManager *cookie.CookieManager,
+	cfg *config.ConfigData,
+) {
+	server := &http.Server{}
+	grpcServer := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			shortenergrpcserver.LoggingInterceptor,
+			shortenergrpcserver.GzipInterceptor,
+			shortenergrpcserver.CookieInterceptor(cookieManager),
+		),
+	)
+
+	idleConnsClosed := make(chan struct{})
+	sigint := make(chan os.Signal, 1)
+	signal.Notify(sigint, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
+	go func() {
+		<-sigint
+		// получили сигнал os.Interrupt, запускаем процедуру graceful shutdown
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		grpcServer.GracefulStop()
+
+		if err := server.Shutdown(ctx); err != nil {
+			// ошибки закрытия Listener
+			log.Printf("HTTP server Shutdown: %v", err)
+		}
+
+		close(idleConnsClosed)
+	}()
+
+	initGrpcServer(shortenerInstance, grpcServer, cookieManager)
+	initHttpServer(cookieManager, cfg, server)
+
+	<-idleConnsClosed
+
+	fmt.Println("Server Shutdown gracefully")
+}
+
+func initGrpcServer(
+	shortenerInstance *shortener.URLShortener,
+	grpcServer *grpc.Server,
+	cookieManager *cookie.CookieManager,
+) {
+	grpcHandlers := shortenergrpcserver.NewGRPCHandlers(shortenerInstance, cookieManager)
+	reflection.Register(grpcServer)
+	shortenergrpcserver.RegisterURLShortenerServer(grpcServer, grpcHandlers)
+
+	listener, err := net.Listen("tcp", ":50051")
+	if err != nil {
+		log.Fatalf("Failed to listen: %v", err)
+	}
+
+	go func() {
+		if err := grpcServer.Serve(listener); err != nil {
+			log.Fatalf("gRPC server failed: %v", err)
+		}
+	}()
+}
+
+func initHttpServer(
+	cookieManager *cookie.CookieManager,
+	cfg *config.ConfigData,
+	server *http.Server,
+) {
 	zapLogger, err := zap.NewDevelopment()
 
 	if err != nil {
@@ -111,44 +183,6 @@ func main() {
 	})
 
 	r.Get("/ping", shortenerInstance.PingHandler)
-
-	server := &http.Server{}
-
-	idleConnsClosed := make(chan struct{})
-	sigint := make(chan os.Signal, 1)
-	signal.Notify(sigint, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
-
-	go func() {
-		<-sigint
-		// получили сигнал os.Interrupt, запускаем процедуру graceful shutdown
-
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-
-		if err := server.Shutdown(ctx); err != nil {
-			// ошибки закрытия Listener
-			log.Printf("HTTP server Shutdown: %v", err)
-		}
-
-		close(idleConnsClosed)
-	}()
-
-	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(shortenergrpcserver.LoggingInterceptor))
-	grpcHandlers := shortenergrpcserver.NewGRPCHandlers(shortenerInstance)
-
-	reflection.Register(grpcServer)
-	shortenergrpcserver.RegisterURLShortenerServer(grpcServer, grpcHandlers)
-
-	listener, err := net.Listen("tcp", ":50051")
-	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
-	}
-
-	go func() {
-		if err := grpcServer.Serve(listener); err != nil {
-			log.Fatalf("gRPC server failed: %v", err)
-		}
-	}()
 
 	if cfg.EnableHTTPS {
 		log.Println("Starting server on port 443")
@@ -174,8 +208,4 @@ func main() {
 			log.Printf("Error starting server: %s", err)
 		}
 	}
-
-	<-idleConnsClosed
-
-	fmt.Println("Server Shutdown gracefully")
 }

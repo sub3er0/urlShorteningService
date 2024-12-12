@@ -147,13 +147,13 @@ func (e *ExistValueError) Error() string {
 	return e.Text
 }
 
-// getShortURL возвращает короткий URL для заданного полного URL.
+// GetShortURL возвращает короткий URL для заданного полного URL.
 // Если в репозитории не найдено, возвращает ошибку.
 // Параметры:
 //   - URL: полный URL для получения короткого URL.
 //
 // Возвращает короткий URL и ошибку, если произошла проблема.
-func (us *URLShortener) getShortURL(URL string) (string, error) {
+func (us *URLShortener) GetShortURL(URL string) (string, error) {
 	return us.URLRepository.GetShortURL(URL)
 }
 
@@ -306,7 +306,7 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 	var dataStorageRows []storage.DataStorageRow
 
 	for _, requestBodyRow := range requestBody {
-		shortKey, getShortURLError := us.getShortURL(requestBodyRow.OriginalURL)
+		shortKey, getShortURLError := us.GetShortURL(requestBodyRow.OriginalURL)
 
 		if getShortURLError != nil {
 			shortKey = GenerateShortKey()
@@ -362,7 +362,6 @@ func (us *URLShortener) JSONBatchHandler(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	log.Printf("END BATCH HADLER")
 }
 
 // GetUserUrls Получает URL пользователя

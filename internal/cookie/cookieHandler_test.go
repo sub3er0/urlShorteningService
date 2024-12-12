@@ -106,7 +106,7 @@ func TestCookieHandler_ExistingUser(t *testing.T) {
 		Storage: mockStorage,
 	}
 
-	cookieValue := "someUserID." + signCookie("someUserID") // Создаем куки
+	cookieValue := "someUserID." + SignCookie("someUserID") // Создаем куки
 	request := httptest.NewRequest("GET", "/", nil)
 	request.AddCookie(&http.Cookie{Name: "user_info", Value: cookieValue})
 	recorder := httptest.NewRecorder()
