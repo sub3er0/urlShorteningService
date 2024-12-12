@@ -133,12 +133,9 @@ func main() {
 		close(idleConnsClosed)
 	}()
 
-	grpcServer := grpc.NewServer()
-	grpcHandlers := shortenergrpcserver.NewGRPCHandlers(
-		urlRepository,
-		userRepository,
-		cookieManager,
-	)
+	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(shortenergrpcserver.LoggingInterceptor))
+	grpcHandlers := shortenergrpcserver.NewGRPCHandlers(shortenerInstance)
+
 	reflection.Register(grpcServer)
 	shortenergrpcserver.RegisterURLShortenerServer(grpcServer, grpcHandlers)
 

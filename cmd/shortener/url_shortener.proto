@@ -21,6 +21,7 @@ message ShortenRequest {
 // Ответ с сокращенным URL
 message ShortenResponse {
   string shortened_url = 1;
+  string message = 2;
 }
 
 // Запрос для получения оригинального URL

@@ -264,7 +264,7 @@ func (us *URLShortener) JSONPostHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	shortKey, err := us.getShortKey(bodyURL.String())
+	shortKey, err := us.GetShortKey(bodyURL.String())
 
 	var responseBody JSONResponseBody
 	responseBody.Result = shortKey
@@ -413,7 +413,7 @@ func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	postURL := u.String()
-	shortKey, err := us.getShortKey(postURL)
+	shortKey, err := us.GetShortKey(postURL)
 
 	if errors.Is(err, ErrShortURLExists) {
 		us.buildResponse(w, shortKey, true)
@@ -434,14 +434,14 @@ func (us *URLShortener) PostHandler(w http.ResponseWriter, r *http.Request) {
 	}(r.Body)
 }
 
-// getShortKey генерирует короткий ключ для заданного оригинального URL.
+// GetShortKey генерирует короткий ключ для заданного оригинального URL.
 // Если короткий URL уже существует, возвращает его и ошибку ErrShortURLExists.
 // Если короткого URL не существует, он создается и сохраняется в репозитории.
 // Параметры:
 //   - postURL: оригинальный URL, для которого требуется получить или создать короткий ключ.
 //
 // Возвращает короткий ключ и ошибку, если возникла проблема.
-func (us *URLShortener) getShortKey(postURL string) (string, error) {
+func (us *URLShortener) GetShortKey(postURL string) (string, error) {
 	shortKey, err := us.URLRepository.GetShortURL(postURL)
 
 	if err == nil {
