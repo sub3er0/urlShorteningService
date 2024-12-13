@@ -256,10 +256,6 @@ func (h *GRPCHandlers) BatchShortenURL(ctx context.Context, req *BatchShortenReq
 
 // ShortenURL обрабатывает gRPC-запрос для сокращения URL.
 func (h *GRPCHandlers) ShortenURL(ctx context.Context, req *ShortenRequest) (*ShortenResponse, error) {
-	if md, ok := metadata.FromIncomingContext(ctx); ok {
-		if values := md["authorization"]; len(values) > 0 {
-		}
-	}
 	shortKey, err := h.us.GetShortKey(req.GetOriginalUrl())
 
 	if errors.Is(err, shortener.ErrShortURLExists) {

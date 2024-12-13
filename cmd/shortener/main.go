@@ -128,7 +128,7 @@ func initServers(
 	}()
 
 	initGrpcServer(shortenerInstance, grpcServer, cookieManager)
-	initHttpServer(cookieManager, cfg, server)
+	initHTTPServer(cookieManager, cfg, server)
 
 	<-idleConnsClosed
 
@@ -156,7 +156,7 @@ func initGrpcServer(
 	}()
 }
 
-func initHttpServer(
+func initHTTPServer(
 	cookieManager *cookie.CookieManager,
 	cfg *config.ConfigData,
 	server *http.Server,
