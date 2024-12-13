@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"encoding/json"
+	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
 )
@@ -97,13 +99,75 @@ func TestGetURLCount(t *testing.T) {
 
 	fs := &FileStorage{FileStoragePath: testFilePath}
 
-	if count := fs.GetURLCount(); count != 0 {
+	count, _ := fs.GetURLCount()
+
+	if count != 0 {
 		t.Errorf("expected URL count to be 0, got %d", count)
 	}
 
 	_ = fs.Save("short1", "http://example.com", "user1")
 
-	if count := fs.GetURLCount(); count != 1 {
+	count, _ = fs.GetURLCount()
+
+	if count != 1 {
 		t.Errorf("expected URL count to be 1, got %d", count)
 	}
+}
+
+func TestSaveBatch(t *testing.T) {
+	testFilePath := "test_file_storage.json"
+	defer os.Remove(testFilePath) // Удаляем файл после теста
+
+	fs := &FileStorage{FileStoragePath: testFilePath}
+
+	dataRows := []DataStorageRow{
+		{ID: 1, ShortURL: "short.ly/1", URL: "http://example.com", UserID: "user1", DeletedFlag: false},
+		{ID: 2, ShortURL: "short.ly/2", URL: "http://example.org", UserID: "user2", DeletedFlag: false},
+	}
+
+	err := fs.SaveBatch(dataRows)
+	assert.NoError(t, err)
+
+	content, err := os.ReadFile(testFilePath)
+	assert.NoError(t, err)
+
+	var savedRows []DataStorageRow
+	err = json.Unmarshal(content, &savedRows)
+
+	assert.NoError(t, err)
+	assert.Len(t, savedRows, 2)
+}
+
+func TestPing(t *testing.T) {
+	fs := &FileStorage{}
+	assert.True(t, fs.Ping())
+}
+
+func TestIsUserExist(t *testing.T) {
+	fs := &FileStorage{}
+	assert.False(t, fs.IsUserExist("test_user_id"))
+}
+
+func TestSaveUser(t *testing.T) {
+	fs := &FileStorage{}
+	err := fs.SaveUser("test_user_id")
+	assert.NoError(t, err)
+}
+
+func TestGetUserUrls(t *testing.T) {
+	fs := &FileStorage{}
+	_, err := fs.GetUserUrls("test_user_id")
+	assert.NoError(t, err)
+}
+
+func TestDeleteUserUrls(t *testing.T) {
+	fs := &FileStorage{}
+	err := fs.DeleteUserUrls("unique_id", []string{"s", "s2"})
+	assert.NoError(t, err)
+}
+
+func TestGetUsersCount(t *testing.T) {
+	fs := &FileStorage{}
+	_, err := fs.GetUsersCount()
+	assert.NoError(t, err)
 }

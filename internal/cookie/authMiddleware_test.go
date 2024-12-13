@@ -38,7 +38,7 @@ func TestAuthMiddleware_InvalidCookie(t *testing.T) {
 
 	// Создаем запрос с недопустимой кукой
 	req := httptest.NewRequest("GET", "/", nil)
-	req.AddCookie(&http.Cookie{Name: cookieName, Value: "invalid.cookie.value"})
+	req.AddCookie(&http.Cookie{Name: CookieName, Value: "invalid.cookie.value"})
 	w := httptest.NewRecorder()
 
 	// Act
@@ -63,7 +63,7 @@ func TestAuthMiddleware_UserNotExists(t *testing.T) {
 
 	// Создаем куку с правильным значением
 	req := httptest.NewRequest("GET", "/", nil)
-	req.AddCookie(&http.Cookie{Name: cookieName, Value: "userID." + signCookie("userID")})
+	req.AddCookie(&http.Cookie{Name: CookieName, Value: "userID." + SignCookie("userID")})
 	w := httptest.NewRecorder()
 
 	// Устанавливаем ожидание для метода IsUserExist
@@ -94,7 +94,7 @@ func TestAuthMiddleware_Success(t *testing.T) {
 
 	// Создаем куку с правильным значением
 	req := httptest.NewRequest("GET", "/", nil)
-	req.AddCookie(&http.Cookie{Name: cookieName, Value: "userID." + signCookie("userID")})
+	req.AddCookie(&http.Cookie{Name: CookieName, Value: "userID." + SignCookie("userID")})
 	w := httptest.NewRecorder()
 
 	// Устанавливаем ожидание для метода IsUserExist

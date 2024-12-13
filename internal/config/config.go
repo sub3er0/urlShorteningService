@@ -25,6 +25,9 @@ type ConfigData struct {
 
 	// EnableHTTPS включает https
 	EnableHTTPS bool `json:"enable_https"`
+
+	// EnableHTTPS включает https
+	TrustedSubnet string `json:"trusted_subnet"`
 }
 
 // isParsed отслеживает, выполнена ли обработка аргументов командной строки.
@@ -66,6 +69,7 @@ func (cs *Configuration) InitConfig() (*ConfigData, error) {
 			"d", "",
 			"Строка подключения к базе данных")
 		flag.BoolVar(&cfg.EnableHTTPS, "s", false, "Enable HTTPS")
+		flag.StringVar(&cfg.TrustedSubnet, "t", "", "Trusted Subnet")
 
 		flag.Parse()
 		isParsed = true
@@ -85,6 +89,10 @@ func (cs *Configuration) InitConfig() (*ConfigData, error) {
 
 	if DatabaseDsn := os.Getenv("DATABASE_DSN"); DatabaseDsn != "" {
 		cfg.DatabaseDsn = DatabaseDsn
+	}
+
+	if TrustedSubnet := os.Getenv("TRUSTED_SUBNET"); TrustedSubnet != "" {
+		cfg.TrustedSubnet = TrustedSubnet
 	}
 
 	if os.Getenv("ENABLE_HTTPS") == "true" {

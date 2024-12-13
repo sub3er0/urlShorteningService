@@ -1,0 +1,97 @@
+
+syntax = "proto3";
+
+package grpc_server;
+
+option go_package = "shortenergrpcserver/";
+
+// Сервис для сокращения URL
+service URLShortener {
+  rpc ShortenURL(ShortenRequest) returns (ShortenResponse);
+  rpc BatchShortenURL(BatchShortenRequest) returns (BatchShortenResponse);
+  rpc GetURL(GetRequest) returns (GetResponse);
+  rpc GetInternalStats(StatsRequest) returns (StatsResponse);
+  rpc Ping(PingRequest) returns (PingResponse);
+  rpc GetUserUrls(UserRequest) returns (UserUrlsResponse);
+  rpc DeleteUserUrls(DeleteUserUrlsRequest) returns (DeleteUserUrlsResponse);
+}
+
+// Сообщения
+message DeleteUserUrlsRequest {
+  repeated string short_urls = 1; // Список коротких URL для удаления
+}
+
+message DeleteUserUrlsResponse {
+  string message = 1; // Сообщение об успешном удалении
+}
+
+// Сообщения
+message UserRequest {
+  string user_id = 1; // Или идентификатор куки, который вы используете
+}
+
+message UserUrlsResponse {
+  repeated UserUrlsResponseBodyItem urls = 1; // Список URL
+}
+
+message UserUrlsResponseBodyItem {
+  string original_url = 1; // Полный оригинальный URL
+  string short_url = 2;    // Короткий URL
+}
+
+// Запрос для пакетного сокращения URL
+message BatchShortenRequest {
+  repeated BatchRequestBody original_urls = 1; // Пакетный запрос
+}
+
+// Строка для пакета
+message BatchRequestBody {
+  string correlation_id = 1; // Идентификатор корреляции
+  string original_url = 2; // Исходный URL
+}
+
+message BatchShortenResponse {
+  repeated BatchResponseBodyItem short_urls = 1; // Сокращенные URL
+}
+
+message BatchResponseBodyItem {
+  string correlation_id = 1; // Идентификатор корреляции
+  string short_url = 2; // Сокращенный URL
+}
+// Запрос для сокращения URL
+message ShortenRequest {
+  string original_url = 1;
+}
+
+// Ответ с сокращенным URL
+message ShortenResponse {
+  string shortened_url = 1;
+  string message = 2;
+}
+
+// Запрос для получения оригинального URL
+message GetRequest {
+  string shortened_url = 1;
+}
+
+// Ответ с оригинальным URL
+message GetResponse {
+  string original_url = 1;
+}
+
+// Запрос для получения статистики
+message StatsRequest {}
+
+// Ответ для статистики
+message StatsResponse {
+  int64 urls = 1;
+  int64 users = 2;
+}
+
+// Запрос для Ping
+message PingRequest {}
+
+// Ответ от Ping
+message PingResponse {
+  string message = 1;
+}
